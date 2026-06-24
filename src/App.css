@@ -129,6 +129,8 @@
   padding: 0 24px;
   border-radius: 999px;
   text-decoration: none;
+  border: none;
+  cursor: pointer;
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
@@ -266,6 +268,117 @@
   flex-wrap: wrap;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(54, 80, 70, 0.38);
+  backdrop-filter: blur(12px);
+}
+
+.rsvp-modal {
+  position: relative;
+  width: min(920px, 100%);
+  max-height: min(92vh, 980px);
+  overflow: auto;
+  border-radius: 28px;
+  border: 1px solid rgba(127, 187, 166, 0.24);
+  background:
+    linear-gradient(180deg, rgba(252, 255, 252, 0.98), rgba(249, 243, 234, 0.98));
+  box-shadow: 0 32px 80px rgba(54, 80, 70, 0.18);
+  padding: 32px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(127, 187, 166, 0.18);
+  color: var(--ink-strong);
+  cursor: pointer;
+  font-size: 1.4rem;
+}
+
+.modal-copy {
+  margin-top: 12px;
+  max-width: 62ch;
+}
+
+.rsvp-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.rsvp-form label {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  font-size: 0.95rem;
+  color: var(--ink-strong);
+}
+
+.rsvp-form .full-span {
+  grid-column: 1 / -1;
+}
+
+.rsvp-form input,
+.rsvp-form textarea,
+.rsvp-form select {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(127, 187, 166, 0.22);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ink-strong);
+  font: inherit;
+}
+
+.rsvp-form input:focus,
+.rsvp-form textarea:focus,
+.rsvp-form select:focus {
+  outline: 2px solid rgba(127, 187, 166, 0.34);
+  outline-offset: 2px;
+}
+
+.form-feedback {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  grid-column: 1 / -1;
+}
+
+.form-feedback.is-error {
+  background: rgba(191, 108, 108, 0.14);
+  color: #8f3f3f;
+}
+
+.form-feedback.is-success {
+  background: rgba(127, 187, 166, 0.16);
+  color: var(--mint-700);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+}
+
+.primary-button:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
 @media (max-width: 900px) {
   .hero-meta,
   .countdown-card,
@@ -293,5 +406,13 @@
 
   .quote-card {
     min-height: auto;
+  }
+
+  .rsvp-modal {
+    padding: 24px 18px;
+  }
+
+  .rsvp-form {
+    grid-template-columns: 1fr;
   }
 }
