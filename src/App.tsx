@@ -42,6 +42,13 @@ type ExistingGroupOption = {
   id: string
   label: string
   leaderName: string
+  room: string
+  numberOfNights: number
+  checkInDate: string
+  checkOutDate: string
+  arrivalTime: string
+  departureTime: string
+  boardingPoint: string
 }
 
 const LOCAL_GROUPS_STORAGE_KEY = 'laura-juan-created-groups'
@@ -413,7 +420,18 @@ function parseCreatedGroup(description: string): ExistingGroupOption | null {
     return null
   }
 
-  return { id, label, leaderName }
+  return {
+    id,
+    label,
+    leaderName,
+    room: '',
+    numberOfNights: 0,
+    checkInDate: '',
+    checkOutDate: '',
+    arrivalTime: '',
+    departureTime: '',
+    boardingPoint: '',
+  }
 }
 
 function readStoredGroups(): ExistingGroupOption[] {
@@ -725,6 +743,22 @@ function App() {
     }
 
     const requiresOwnLodgingDetails = formData.travelGroupMode !== 'join'
+    const selectedGroupLodgingDetails =
+      formData.travelGroupMode === 'join' ? selectedExistingGroup : null
+
+    if (
+      formData.travelGroupMode === 'join' &&
+      (!selectedGroupLodgingDetails?.room ||
+        !selectedGroupLodgingDetails.numberOfNights ||
+        !selectedGroupLodgingDetails.checkInDate ||
+        !selectedGroupLodgingDetails.checkOutDate)
+    ) {
+      setSubmitState('error')
+      setFeedbackMessage(
+        'Ese grupo no tiene completos los datos de hospedaje compartido. Primero guarda correctamente la invitación que crea el grupo.',
+      )
+      return
+    }
 
     if (
       requiresOwnLodgingDetails &&
@@ -780,14 +814,28 @@ function App() {
         ]
           .filter(Boolean)
           .join(' | ') || null,
-      room: requiresOwnLodgingDetails ? formData.room.trim() || null : null,
+      room: requiresOwnLodgingDetails
+        ? formData.room.trim() || null
+        : selectedGroupLodgingDetails?.room || null,
       number_of_people: attendingCount,
-      number_of_nights: requiresOwnLodgingDetails ? Number(formData.numberOfNights) : null,
-      check_in_date: requiresOwnLodgingDetails ? formData.checkInDate : null,
-      check_out_date: requiresOwnLodgingDetails ? formData.checkOutDate : null,
-      arrival_time: requiresOwnLodgingDetails ? formData.arrivalTime || null : null,
-      departure_time: requiresOwnLodgingDetails ? formData.departureTime || null : null,
-      boarding_point: requiresOwnLodgingDetails ? formData.boardingPoint.trim() || null : null,
+      number_of_nights: requiresOwnLodgingDetails
+        ? Number(formData.numberOfNights)
+        : selectedGroupLodgingDetails?.numberOfNights ?? null,
+      check_in_date: requiresOwnLodgingDetails
+        ? formData.checkInDate
+        : selectedGroupLodgingDetails?.checkInDate ?? null,
+      check_out_date: requiresOwnLodgingDetails
+        ? formData.checkOutDate
+        : selectedGroupLodgingDetails?.checkOutDate ?? null,
+      arrival_time: requiresOwnLodgingDetails
+        ? formData.arrivalTime || null
+        : selectedGroupLodgingDetails?.arrivalTime || null,
+      departure_time: requiresOwnLodgingDetails
+        ? formData.departureTime || null
+        : selectedGroupLodgingDetails?.departureTime || null,
+      boarding_point: requiresOwnLodgingDetails
+        ? formData.boardingPoint.trim() || null
+        : selectedGroupLodgingDetails?.boardingPoint || null,
       allergies: formData.allergies.trim() || null,
       notes:
         [
@@ -813,6 +861,13 @@ function App() {
         id: generateGroupCode(activeInvitation.code, formData.groupName),
         label: formData.groupName.trim(),
         leaderName: formData.groupLeaderName.trim() || formData.fullName.trim(),
+        room: formData.room.trim(),
+        numberOfNights: Number(formData.numberOfNights),
+        checkInDate: formData.checkInDate,
+        checkOutDate: formData.checkOutDate,
+        arrivalTime: formData.arrivalTime,
+        departureTime: formData.departureTime,
+        boardingPoint: formData.boardingPoint.trim(),
       }
 
       const mergedStoredGroups = new Map<string, ExistingGroupOption>()
