@@ -858,7 +858,7 @@ function App() {
             <div className="hero-meta">
               <div>
                 <span className="meta-label">Fecha</span>
-                <strong>27 mayo 2027</strong>
+                <strong>29 de Mayo de 2027</strong>
               </div>
               <div>
                 <span className="meta-label">Hora</span>
@@ -881,7 +881,7 @@ function App() {
 
         <section className="countdown-section" aria-label="Cuenta regresiva para la boda">
           <h2 className="countdown-title">Cuenta regresiva para el gran día</h2>
-          <p className="countdown-date">27 de mayo de 2027 · Hotel Isla Múcura</p>
+          <p className="countdown-date">29 de Mayo de 2027 · Hotel Isla Múcura</p>
           <div className="countdown-card">
             {Object.entries(countdown).map(([unit, value]) => (
               <div className="countdown-item" key={unit}>
