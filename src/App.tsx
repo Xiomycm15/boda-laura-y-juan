@@ -28,13 +28,30 @@ type InvitationMember = {
   attending: boolean
 }
 
+type NightCount = '1' | '2' | '3'
+
+type LodgingOption = {
+  id: string
+  label: string
+  totalRooms: number
+  capacity: number
+  pricesByNight: Record<NightCount, number>
+}
+
+type ExistingGroupOption = {
+  id: string
+  label: string
+  leaderName: string
+}
+
+const LOCAL_GROUPS_STORAGE_KEY = 'laura-juan-created-groups'
+
 type RsvpFormData = {
   fullName: string
   identityDocument: string
   phone: string
   travelGroupMode: TravelGroupMode
   groupName: string
-  groupCode: string
   groupLeaderName: string
   sharedInvitationsEstimate: string
   description: string
@@ -105,7 +122,6 @@ const initialFormData: RsvpFormData = {
   phone: '',
   travelGroupMode: 'individual',
   groupName: '',
-  groupCode: '',
   groupLeaderName: '',
   sharedInvitationsEstimate: '',
   description: '',
@@ -181,6 +197,135 @@ const travelGroupOptions = [
   },
 ] as const
 
+const lodgingOptions: LodgingOption[] = [
+  {
+    id: 'bungalow-suite-doble-mar',
+    label: 'Bungalow Suite - doble vista al mar',
+    totalRooms: 5,
+    capacity: 2,
+    pricesByNight: { 1: 953399, 2: 1586798, 3: 2220197 },
+  },
+  {
+    id: 'bungalow-deluxe-triple-frente-mar',
+    label: 'Bungalow Deluxe - triple dos camas, vista frente al mar',
+    totalRooms: 5,
+    capacity: 3,
+    pricesByNight: { 1: 878251, 2: 1436503, 3: 1994754 },
+  },
+  {
+    id: 'bungalow-deluxe-doble-frente-mar',
+    label: 'Bungalow Deluxe - doble, vista frente al mar',
+    totalRooms: 17,
+    capacity: 2,
+    pricesByNight: { 1: 1032877, 2: 1745754, 3: 2458631 },
+  },
+  {
+    id: 'bungalow-deluxe-pool-doble-frente-mar',
+    label: 'Bungalow Deluxe Pool - doble, frente al mar',
+    totalRooms: 17,
+    capacity: 2,
+    pricesByNight: { 1: 1134339, 2: 1948677, 3: 2763016 },
+  },
+  {
+    id: 'bungalow-pool-deluxe-doble-frente-mar',
+    label: 'Bungalow Pool Deluxe - doble, vista frente al mar',
+    totalRooms: 4,
+    capacity: 2,
+    pricesByNight: { 1: 1134339, 2: 1948677, 3: 2763016 },
+  },
+  {
+    id: 'bungalow-deluxe-doble-mayo',
+    label: 'Bungalow Deluxe - doble, vista frente al mar (28 al 31 de mayo)',
+    totalRooms: 4,
+    capacity: 2,
+    pricesByNight: { 1: 569000, 2: 818000, 3: 1067000 },
+  },
+  {
+    id: 'bungalow-familiar-cuadruple-frente-mar',
+    label: 'Bungalow Familiar - cuadruple, vista frente al mar',
+    totalRooms: 3,
+    capacity: 4,
+    pricesByNight: { 1: 861071, 2: 1402141, 3: 1943212 },
+  },
+  {
+    id: 'cabana-familiar-quintuple',
+    label: 'Cabaña Familiar - quintuples con aire',
+    totalRooms: 2,
+    capacity: 5,
+    pricesByNight: { 1: 830146, 2: 1340291, 3: 1850437 },
+  },
+  {
+    id: 'kiosko-jardin-deluxe-cuadruple',
+    label: 'Kiosko Jardín Deluxe - cuadruple, vista al jardín con aire',
+    totalRooms: 6,
+    capacity: 4,
+    pricesByNight: { 1: 827416, 2: 1334832, 3: 1842248 },
+  },
+  {
+    id: 'kiosko-jardin-doble',
+    label: 'Kiosko Jardín - doble, vista al jardín con aire',
+    totalRooms: 2,
+    capacity: 2,
+    pricesByNight: { 1: 840454, 2: 1360908, 3: 1881362 },
+  },
+  {
+    id: 'villa-pool-familiar-sextuple',
+    label: 'Villa Pool Familiar - sextuple con piscina privada',
+    totalRooms: 2,
+    capacity: 6,
+    pricesByNight: { 1: 809529, 2: 1299058, 3: 1788586 },
+  },
+  {
+    id: 'villa-piscina-oasis-cuadruple',
+    label: 'Villa Piscina Oasis - cuadruple, vista al jardín',
+    totalRooms: 7,
+    capacity: 4,
+    pricesByNight: { 1: 826189, 2: 1332378, 3: 1838566 },
+  },
+  {
+    id: 'villa-piscina-oasis-triple',
+    label: 'Villa Piscina Oasis - triple, vista al jardín',
+    totalRooms: 7,
+    capacity: 2,
+    pricesByNight: { 1: 569000, 2: 818000, 3: 1067000 },
+  },
+  {
+    id: 'villa-piscina-oasis-doble',
+    label: 'Villa Piscina Oasis - doble, vista al jardín',
+    totalRooms: 3,
+    capacity: 2,
+    pricesByNight: { 1: 912613, 2: 1505225, 3: 2097838 },
+  },
+  {
+    id: 'villa-piscina-triple-con-piscina',
+    label: 'Villa Piscina - triple con piscina, vista al jardín con aire',
+    totalRooms: 3,
+    capacity: 3,
+    pricesByNight: { 1: 878147, 2: 1436293, 3: 1994440 },
+  },
+  {
+    id: 'mangle-doble',
+    label: 'Mangle - doble',
+    totalRooms: 9,
+    capacity: 2,
+    pricesByNight: { 1: 823273, 2: 1326547, 3: 1829820 },
+  },
+  {
+    id: 'kiosko-deluxe-elevado-presidencial',
+    label: 'Kiosko Deluxe Elevado Presidencial - cuadruple vista panorámica frente al mar',
+    totalRooms: 1,
+    capacity: 4,
+    pricesByNight: { 1: 826709, 2: 1333419, 3: 1840128 },
+  },
+  {
+    id: 'kiosko-deluxe-elevado-doble',
+    label: 'Kiosko Deluxe Elevado - doble vista panorámica frente al mar',
+    totalRooms: 5,
+    capacity: 2,
+    pricesByNight: { 1: 956595, 2: 1593190, 3: 2229785 },
+  },
+]
+
 function getInvitationType(invitation: InvitationPreset): InvitationType {
   return invitation.members.length > 1 ? 'family' : 'individual'
 }
@@ -231,16 +376,84 @@ function getInvitationFromSearch(): InvitationPreset {
   )
 }
 
-function buildGroupSummary(formData: RsvpFormData) {
+function generateGroupCode(invitationCode: string, groupName: string) {
+  const normalizedGroupName = groupName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 12)
+
+  return `${invitationCode}-${normalizedGroupName || 'GRUPO'}`
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function parseCreatedGroup(description: string): ExistingGroupOption | null {
+  const groupNameMatch = description.match(/Crea grupo compartido:\s*([^|]+)/)
+  const groupIdMatch = description.match(/ID del grupo:\s*([^|]+)/)
+  const leaderMatch = description.match(/Responsable:\s*([^|]+)/)
+
+  if (!groupNameMatch || !groupIdMatch) {
+    return null
+  }
+
+  const label = groupNameMatch[1]?.trim()
+  const id = groupIdMatch[1]?.trim()
+  const leaderName = leaderMatch?.[1]?.trim() ?? 'Pendiente'
+
+  if (!label || !id) {
+    return null
+  }
+
+  return { id, label, leaderName }
+}
+
+function readStoredGroups(): ExistingGroupOption[] {
+  if (typeof window === 'undefined') {
+    return []
+  }
+
+  const rawValue = window.localStorage.getItem(LOCAL_GROUPS_STORAGE_KEY)
+
+  if (!rawValue) {
+    return []
+  }
+
+  try {
+    const parsedValue = JSON.parse(rawValue) as ExistingGroupOption[]
+
+    return Array.isArray(parsedValue) ? parsedValue : []
+  } catch {
+    return []
+  }
+}
+
+function writeStoredGroups(groups: ExistingGroupOption[]) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.setItem(LOCAL_GROUPS_STORAGE_KEY, JSON.stringify(groups))
+}
+
+function buildGroupSummary(formData: RsvpFormData, invitationCode: string) {
   if (formData.travelGroupMode === 'individual') {
     return 'La invitación se hospeda sola y mantiene su reserva independiente.'
   }
 
   if (formData.travelGroupMode === 'create') {
-    return `Crea grupo compartido: ${formData.groupName || 'Sin nombre aún'} | Código sugerido: ${formData.groupCode || 'Sin código aún'} | Responsable: ${formData.groupLeaderName || formData.fullName || 'Pendiente'} | Invitaciones estimadas: ${formData.sharedInvitationsEstimate || 'Pendiente'}`
+    return `Crea grupo compartido: ${formData.groupName || 'Sin nombre aún'} | ID del grupo: ${generateGroupCode(invitationCode, formData.groupName)} | Responsable: ${formData.groupLeaderName || formData.fullName || 'Pendiente'} | Invitaciones estimadas: ${formData.sharedInvitationsEstimate || 'Pendiente'}`
   }
 
-  return `Se une a grupo existente: ${formData.groupName || 'Sin nombre aún'} | Código del grupo: ${formData.groupCode || 'Sin código aún'} | Líder del grupo: ${formData.groupLeaderName || 'Pendiente'}`
+  return `Se une a grupo existente: ${formData.groupName || 'Sin nombre aún'} | Líder del grupo: ${formData.groupLeaderName || 'Pendiente'}`
 }
 
 function App() {
@@ -255,11 +468,39 @@ function App() {
   })
   const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
   const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [reservedRoomsByLabel, setReservedRoomsByLabel] = useState<Record<string, number>>({})
+  const [existingGroups, setExistingGroups] = useState<ExistingGroupOption[]>([])
+  const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false)
+  const [availabilityError, setAvailabilityError] = useState('')
 
   const invitationType = getInvitationType(activeInvitation)
   const attendingMembers = familyMembers.filter((member) => member.attending)
   const attendingCount = attendingMembers.length
   const isKnownInvitation = activeInvitation.code !== 'INV-DEFAULT'
+  const estimatedGroupCapacity =
+    formData.travelGroupMode === 'create' && Number(formData.sharedInvitationsEstimate) > 0
+      ? Number(formData.sharedInvitationsEstimate)
+      : attendingCount
+  const requiredLodgingCapacity = formData.travelGroupMode === 'create' ? estimatedGroupCapacity : attendingCount
+  const selectedRoomOption = lodgingOptions.find((option) => option.label === formData.room) ?? null
+  const selectedNightCount =
+    formData.numberOfNights === '1' || formData.numberOfNights === '2' || formData.numberOfNights === '3'
+      ? formData.numberOfNights
+      : null
+  const availableLodgingOptions = lodgingOptions.filter((option) => {
+    const reservedCount = reservedRoomsByLabel[option.label] ?? 0
+    return option.capacity >= requiredLodgingCapacity && reservedCount < option.totalRooms
+  })
+  const selectedPricePerPerson =
+    selectedRoomOption && selectedNightCount ? selectedRoomOption.pricesByNight[selectedNightCount] : null
+  const selectedStayTotal = selectedPricePerPerson ? selectedPricePerPerson * requiredLodgingCapacity : null
+  const selectedRemainingRooms = selectedRoomOption
+    ? selectedRoomOption.totalRooms - (reservedRoomsByLabel[selectedRoomOption.label] ?? 0)
+    : null
+  const selectedExistingGroup =
+    formData.travelGroupMode === 'join'
+      ? existingGroups.find((group) => group.id === formData.groupName) ?? null
+      : null
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -286,7 +527,6 @@ function App() {
       ...current,
       travelGroupMode: 'individual',
       groupName: '',
-      groupCode: '',
       groupLeaderName: '',
       sharedInvitationsEstimate: '',
       room: '',
@@ -300,6 +540,95 @@ function App() {
       notes: '',
     }))
   }, [attendingCount])
+
+  useEffect(() => {
+    if (!isRsvpOpen || !supabase) {
+      if (!supabase) {
+        setReservedRoomsByLabel({})
+      }
+      return
+    }
+
+    const supabaseClient = supabase
+    let isCancelled = false
+
+    async function loadReservedRooms() {
+      setIsAvailabilityLoading(true)
+      setAvailabilityError('')
+
+      const { data, error } = await supabaseClient
+        .from('wedding_rsvps')
+        .select('room, description')
+
+      if (isCancelled) {
+        return
+      }
+
+      if (error) {
+        setAvailabilityError('No pudimos validar la disponibilidad en tiempo real. Intenta de nuevo.')
+        setReservedRoomsByLabel({})
+        setIsAvailabilityLoading(false)
+        return
+      }
+
+      const nextReservedRoomsByLabel: Record<string, number> = {}
+      const nextExistingGroups = new Map<string, ExistingGroupOption>()
+
+      for (const storedGroup of readStoredGroups()) {
+        nextExistingGroups.set(storedGroup.id, storedGroup)
+      }
+
+      for (const row of data ?? []) {
+        const roomLabel = typeof row.room === 'string' ? row.room.trim() : ''
+        const description = typeof row.description === 'string' ? row.description : ''
+
+        if (!roomLabel) {
+          const parsedGroup = parseCreatedGroup(description)
+
+          if (parsedGroup) {
+            nextExistingGroups.set(parsedGroup.id, parsedGroup)
+          }
+
+          continue
+        }
+
+        nextReservedRoomsByLabel[roomLabel] = (nextReservedRoomsByLabel[roomLabel] ?? 0) + 1
+
+        const parsedGroup = parseCreatedGroup(description)
+
+        if (parsedGroup) {
+          nextExistingGroups.set(parsedGroup.id, parsedGroup)
+        }
+      }
+
+      setReservedRoomsByLabel(nextReservedRoomsByLabel)
+      setExistingGroups(Array.from(nextExistingGroups.values()))
+      setIsAvailabilityLoading(false)
+    }
+
+    loadReservedRooms()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [isRsvpOpen])
+
+  useEffect(() => {
+    if (!formData.room) {
+      return
+    }
+
+    const roomStillAvailable = availableLodgingOptions.some((option) => option.label === formData.room)
+
+    if (roomStillAvailable) {
+      return
+    }
+
+    setFormData((current) => ({
+      ...current,
+      room: '',
+    }))
+  }, [availableLodgingOptions, formData.room])
 
   function openRsvpModal() {
     setIsRsvpOpen(true)
@@ -333,13 +662,30 @@ function App() {
       if (name === 'travelGroupMode') {
         if (value === 'individual') {
           next.groupName = ''
-          next.groupCode = ''
           next.groupLeaderName = ''
           next.sharedInvitationsEstimate = ''
+          next.room = ''
+          next.numberOfNights = ''
         }
 
         if (value === 'join') {
           next.sharedInvitationsEstimate = ''
+          next.room = ''
+          next.numberOfNights = ''
+          next.groupLeaderName = ''
+        }
+
+        if (value === 'create') {
+          next.groupName = ''
+          next.groupLeaderName = ''
+        }
+      }
+
+      if (name === 'groupName' && current.travelGroupMode === 'join') {
+        const selectedGroup = existingGroups.find((group) => group.id === value)
+
+        if (selectedGroup) {
+          next.groupLeaderName = selectedGroup.leaderName
         }
       }
 
@@ -372,6 +718,39 @@ function App() {
       return
     }
 
+    if (formData.travelGroupMode === 'join' && !selectedExistingGroup) {
+      setSubmitState('error')
+      setFeedbackMessage('Selecciona uno de los grupos creados previamente para unirte.')
+      return
+    }
+
+    const requiresOwnLodgingDetails = formData.travelGroupMode !== 'join'
+
+    if (
+      requiresOwnLodgingDetails &&
+      (!selectedRoomOption || !selectedNightCount || !selectedPricePerPerson || !selectedStayTotal)
+    ) {
+      setSubmitState('error')
+      setFeedbackMessage('Selecciona una habitación disponible y el número de noches antes de guardar.')
+      return
+    }
+
+    if (
+      requiresOwnLodgingDetails &&
+      selectedRoomOption &&
+      selectedRoomOption.capacity < requiredLodgingCapacity
+    ) {
+      setSubmitState('error')
+      setFeedbackMessage('La habitación elegida no alcanza para la capacidad requerida de este grupo.')
+      return
+    }
+
+    if (requiresOwnLodgingDetails && selectedRemainingRooms !== null && selectedRemainingRooms <= 0) {
+      setSubmitState('error')
+      setFeedbackMessage('La habitación elegida ya no tiene disponibilidad. Elige otra opción.')
+      return
+    }
+
     setSubmitState('submitting')
     setFeedbackMessage('')
 
@@ -390,19 +769,25 @@ function App() {
           `Tipo de invitación: ${invitationType === 'family' ? 'Familiar' : 'Individual'}`,
           `Miembros: ${membersSummary}`,
           `Modo de hospedaje: ${travelGroupOptions.find((option) => option.value === formData.travelGroupMode)?.title ?? 'Sin definir'}`,
-          buildGroupSummary(formData),
+          buildGroupSummary(formData, activeInvitation.code),
+          requiresOwnLodgingDetails && selectedRoomOption ? `Habitación seleccionada: ${selectedRoomOption.label}` : '',
+          requiresOwnLodgingDetails && selectedNightCount ? `Noches: ${selectedNightCount}` : '',
+          requiresOwnLodgingDetails && selectedPricePerPerson
+            ? `Tarifa por persona: ${formatCurrency(selectedPricePerPerson)}`
+            : '',
+          requiresOwnLodgingDetails && selectedStayTotal ? `Total estimado: ${formatCurrency(selectedStayTotal)}` : '',
           formData.description.trim(),
         ]
           .filter(Boolean)
           .join(' | ') || null,
-      room: formData.room.trim() || null,
+      room: requiresOwnLodgingDetails ? formData.room.trim() || null : null,
       number_of_people: attendingCount,
-      number_of_nights: Number(formData.numberOfNights),
-      check_in_date: formData.checkInDate,
-      check_out_date: formData.checkOutDate,
-      arrival_time: formData.arrivalTime || null,
-      departure_time: formData.departureTime || null,
-      boarding_point: formData.boardingPoint.trim() || null,
+      number_of_nights: requiresOwnLodgingDetails ? Number(formData.numberOfNights) : null,
+      check_in_date: requiresOwnLodgingDetails ? formData.checkInDate : null,
+      check_out_date: requiresOwnLodgingDetails ? formData.checkOutDate : null,
+      arrival_time: requiresOwnLodgingDetails ? formData.arrivalTime || null : null,
+      departure_time: requiresOwnLodgingDetails ? formData.departureTime || null : null,
+      boarding_point: requiresOwnLodgingDetails ? formData.boardingPoint.trim() || null : null,
       allergies: formData.allergies.trim() || null,
       notes:
         [
@@ -421,6 +806,26 @@ function App() {
       setSubmitState('error')
       setFeedbackMessage('No se pudo guardar la información. Revisa la configuración de Supabase.')
       return
+    }
+
+    if (formData.travelGroupMode === 'create') {
+      const createdGroup: ExistingGroupOption = {
+        id: generateGroupCode(activeInvitation.code, formData.groupName),
+        label: formData.groupName.trim(),
+        leaderName: formData.groupLeaderName.trim() || formData.fullName.trim(),
+      }
+
+      const mergedStoredGroups = new Map<string, ExistingGroupOption>()
+
+      for (const group of readStoredGroups()) {
+        mergedStoredGroups.set(group.id, group)
+      }
+
+      mergedStoredGroups.set(createdGroup.id, createdGroup)
+
+      const nextStoredGroups = Array.from(mergedStoredGroups.values())
+      writeStoredGroups(nextStoredGroups)
+      setExistingGroups(nextStoredGroups)
     }
 
     setSubmitState('success')
@@ -465,6 +870,13 @@ function App() {
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="invitees-section">
+          <p className="invitees-label">{activeInvitation.members.length === 1 ? 'Apreciado/a:' : 'Apreciados:'}</p>
+          <h2 className="invitees-title">
+            {isKnownInvitation ? activeInvitation.label : 'Tu invitación personalizada'}
+          </h2>
         </section>
 
         <section className="countdown-section" aria-label="Cuenta regresiva para la boda">
@@ -520,13 +932,6 @@ function App() {
               <span>@hotelislamucura</span>
             </a>
           </div>
-        </section>
-
-        <section className="invitees-section">
-          <p className="invitees-label">Invitación para:</p>
-          <h2 className="invitees-title">
-            {isKnownInvitation ? activeInvitation.label : 'Tu invitación personalizada'}
-          </h2>
         </section>
 
         <section className="attendance-info-section">
@@ -736,38 +1141,46 @@ function App() {
                   {formData.travelGroupMode !== 'individual' ? (
                     <div className="full-span lodging-grid">
                       <label>
-                        Nombre del grupo
-                        <input
-                          name="groupName"
-                          onChange={handleInputChange}
-                          placeholder="Ej: Grupo primos Laura"
-                          required
-                          value={formData.groupName}
-                        />
+                        {formData.travelGroupMode === 'join' ? 'Grupo disponible' : 'Nombre del grupo'}
+                        {formData.travelGroupMode === 'join' ? (
+                          <select name="groupName" onChange={handleInputChange} required value={formData.groupName}>
+                            <option value="">Selecciona un grupo creado</option>
+                            {existingGroups.map((group) => (
+                              <option key={group.id} value={group.id}>
+                                {group.label} · {group.id}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            name="groupName"
+                            onChange={handleInputChange}
+                            placeholder="Ej: Grupo primos Laura"
+                            required
+                            value={formData.groupName}
+                          />
+                        )}
                       </label>
 
-                      <label>
-                        Código del grupo
-                        <input
-                          name="groupCode"
-                          onChange={handleInputChange}
-                          placeholder="Ej: GR-PRIMOS"
-                          required
-                          value={formData.groupCode}
-                        />
-                      </label>
-
-                      <label>
-                        Responsable del grupo
-                        <input
-                          name="groupLeaderName"
-                          onChange={handleInputChange}
-                          placeholder="Nombre del líder del grupo"
-                          required
-                          value={formData.groupLeaderName}
-                        />
-                      </label>
+                      {formData.travelGroupMode !== 'join' ? (
+                        <label>
+                          Responsable del grupo
+                          <input
+                            name="groupLeaderName"
+                            onChange={handleInputChange}
+                            placeholder="Nombre del líder del grupo"
+                            required
+                            value={formData.groupLeaderName}
+                          />
+                        </label>
+                      ) : null}
                     </div>
+                  ) : null}
+
+                  {formData.travelGroupMode === 'join' && existingGroups.length === 0 ? (
+                    <p className="availability-note is-empty">
+                      Aún no hay grupos creados para unirse. Primero debe existir al menos un grupo anfitrión.
+                    </p>
                   ) : null}
 
                   {formData.travelGroupMode === 'create' ? (
@@ -785,27 +1198,68 @@ function App() {
                     </label>
                   ) : null}
 
-                  <div className="full-span form-section-card">
+                  {formData.travelGroupMode !== 'join' ? (
+                    <div className="full-span form-section-card">
                     <div className="form-section-heading">
                       <span className="meta-label">Detalles del hospedaje</span>
                       <strong>Completa los datos del viaje</strong>
                     </div>
+                    <article className="lodging-banner">
+                      <span className="meta-label">Este precio incluye</span>
+                      <strong>Hospedaje en Hotel Isla Múcura</strong>
+                      <ul className="lodging-includes-list">
+                        <li>Alimentación desayuno -almuerzo-cena</li>
+                        <li>Transporte</li>
+                      </ul>
+                    </article>
+
+                    {isAvailabilityLoading ? (
+                      <p className="availability-note">Estamos validando las habitaciones disponibles...</p>
+                    ) : null}
+
+                    {availabilityError ? <p className="availability-note is-error">{availabilityError}</p> : null}
+
+                    {availableLodgingOptions.length === 0 ? (
+                      <p className="availability-note is-empty">
+                        No hay habitaciones disponibles para {requiredLodgingCapacity} invitado(s) en este momento.
+                      </p>
+                    ) : null}
+
                     <div className="lodging-grid">
                       <label>
                         Habitación
-                        <input name="room" onChange={handleInputChange} value={formData.room} />
+                        <select
+                          name="room"
+                          onChange={handleInputChange}
+                          required
+                          value={formData.room}
+                        >
+                          <option value="">Selecciona una habitación</option>
+                          {availableLodgingOptions.map((option) => {
+                            const remainingRooms = option.totalRooms - (reservedRoomsByLabel[option.label] ?? 0)
+
+                            return (
+                              <option key={option.id} value={option.label}>
+                                {option.label} · Hasta {option.capacity} personas · {remainingRooms} disponible(s)
+                              </option>
+                            )
+                          })}
+                        </select>
                       </label>
 
                       <label>
                         Número de noches
-                        <input
-                          min="1"
+                        <select
                           name="numberOfNights"
                           onChange={handleInputChange}
                           required
-                          type="number"
                           value={formData.numberOfNights}
-                        />
+                        >
+                          <option value="">Selecciona las noches</option>
+                          <option value="1">1 noche</option>
+                          <option value="2">2 noches</option>
+                          <option value="3">3 noches</option>
+                        </select>
                       </label>
 
                       <label>
@@ -869,7 +1323,21 @@ function App() {
                         />
                       </label>
                     </div>
-                  </div>
+
+                    {selectedRoomOption && selectedNightCount && selectedPricePerPerson && selectedStayTotal ? (
+                      <article className="lodging-price-card">
+                        <span className="meta-label">Resumen de precio</span>
+                        <strong>{selectedRoomOption.label}</strong>
+                        <p>
+                          Capacidad máxima: {selectedRoomOption.capacity} persona(s) · Capacidad requerida:{' '}
+                          {requiredLodgingCapacity}
+                        </p>
+                        <p>Valor por persona para {selectedNightCount} noche(s): {formatCurrency(selectedPricePerPerson)}</p>
+                        <p>Total estimado del grupo: {formatCurrency(selectedStayTotal)}</p>
+                      </article>
+                    ) : null}
+                    </div>
+                  ) : null}
                 </>
               ) : null}
 

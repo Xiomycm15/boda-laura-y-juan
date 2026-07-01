@@ -681,6 +681,16 @@
   margin: 0;
 }
 
+.lodging-includes-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--ink-strong);
+}
+
+.lodging-includes-list li + li {
+  margin-top: 6px;
+}
+
 .lodging-banner.is-muted {
   background: rgba(249, 243, 234, 0.92);
   border-color: rgba(127, 187, 166, 0.12);
@@ -815,6 +825,48 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.availability-note,
+.lodging-price-card {
+  margin: 0;
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
+.availability-note {
+  border: 1px solid rgba(127, 187, 166, 0.16);
+  background: rgba(245, 252, 248, 0.88);
+  color: var(--mint-700);
+}
+
+.availability-note.is-error {
+  border-color: rgba(196, 131, 131, 0.24);
+  background: rgba(255, 245, 245, 0.96);
+  color: #9b5d5d;
+}
+
+.availability-note.is-empty {
+  border-color: rgba(220, 187, 118, 0.28);
+  background: rgba(255, 250, 240, 0.96);
+  color: #8d6b2d;
+}
+
+.lodging-price-card {
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(127, 187, 166, 0.16);
+  background: linear-gradient(180deg, rgba(241, 250, 244, 0.92), rgba(255, 251, 245, 0.92));
+}
+
+.lodging-price-card strong {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.4rem;
+  line-height: 1.1;
+}
+
+.lodging-price-card p {
+  margin: 0;
 }
 
 .group-estimate-field {
