@@ -26,6 +26,12 @@ type InvitationMember = {
   id: string
   name: string
   attending: boolean
+  fullName: string
+  identityDocument: string
+  phone: string
+  email: string
+  allergies: string
+  isPrimaryContact: boolean
 }
 
 type NightCount = '1' | '2' | '3'
@@ -73,7 +79,7 @@ type RsvpFormData = {
   notes: string
 }
 
-const weddingDate = new Date('2027-05-27T16:00:00')
+const weddingDate = new Date('2027-05-27T16:30:00')
 
 const invitationPresets: InvitationPreset[] = [
   { code: 'INV-001', slug: 'papitos-jeanet-salo', label: 'Papitos: Jeanet & Salo', members: ['Jeanet', 'Salo'] },
@@ -145,7 +151,7 @@ const initialFormData: RsvpFormData = {
 
 const timeline = [
   {
-    time: '4:00 PM',
+    time: '4:30 PM',
     title: 'Ceremonia',
     description: 'Nos encontraremos entre flores, velas y promesas para decirnos si para siempre.',
   },
@@ -357,6 +363,12 @@ function createMembers(invitation: InvitationPreset): InvitationMember[] {
     id: `${invitation.code}-${index}`,
     name: memberName,
     attending: true,
+    fullName: memberName,
+    identityDocument: '',
+    phone: '',
+    email: '',
+    allergies: '',
+    isPrimaryContact: index === 0,
   }))
 }
 
@@ -462,13 +474,13 @@ function writeStoredGroups(groups: ExistingGroupOption[]) {
   window.localStorage.setItem(LOCAL_GROUPS_STORAGE_KEY, JSON.stringify(groups))
 }
 
-function buildGroupSummary(formData: RsvpFormData, invitationCode: string) {
+function buildGroupSummary(formData: RsvpFormData, invitationCode: string, principalContactName: string) {
   if (formData.travelGroupMode === 'individual') {
     return 'La invitación se hospeda sola y mantiene su reserva independiente.'
   }
 
   if (formData.travelGroupMode === 'create') {
-    return `Crea grupo compartido: ${formData.groupName || 'Sin nombre aún'} | ID del grupo: ${generateGroupCode(invitationCode, formData.groupName)} | Responsable: ${formData.groupLeaderName || formData.fullName || 'Pendiente'} | Invitaciones estimadas: ${formData.sharedInvitationsEstimate || 'Pendiente'}`
+    return `Crea grupo compartido: ${formData.groupName || 'Sin nombre aún'} | ID del grupo: ${generateGroupCode(invitationCode, formData.groupName)} | Responsable: ${formData.groupLeaderName || principalContactName || 'Pendiente'} | Invitaciones estimadas: ${formData.sharedInvitationsEstimate || 'Pendiente'}`
   }
 
   return `Se une a grupo existente: ${formData.groupName || 'Sin nombre aún'} | Líder del grupo: ${formData.groupLeaderName || 'Pendiente'}`
@@ -495,6 +507,8 @@ function App() {
   const attendingMembers = familyMembers.filter((member) => member.attending)
   const attendingCount = attendingMembers.length
   const isKnownInvitation = activeInvitation.code !== 'INV-DEFAULT'
+  const principalContact = attendingMembers.find((member) => member.isPrimaryContact) ?? attendingMembers[0] ?? null
+  const principalContactName = principalContact?.fullName.trim() || activeInvitation.members[0] || ''
   const estimatedGroupCapacity =
     formData.travelGroupMode === 'create' && Number(formData.sharedInvitationsEstimate) > 0
       ? Number(formData.sharedInvitationsEstimate)
@@ -558,6 +572,31 @@ function App() {
       notes: '',
     }))
   }, [attendingCount])
+
+  useEffect(() => {
+    if (attendingMembers.length === 0) {
+      return
+    }
+
+    const hasPrimaryContact = attendingMembers.some((member) => member.isPrimaryContact)
+
+    if (hasPrimaryContact) {
+      return
+    }
+
+    const fallbackPrimaryId = attendingMembers[0]?.id
+
+    if (!fallbackPrimaryId) {
+      return
+    }
+
+    setFamilyMembers((current) =>
+      current.map((member) => ({
+        ...member,
+        isPrimaryContact: member.id === fallbackPrimaryId,
+      })),
+    )
+  }, [attendingMembers])
 
   useEffect(() => {
     if (!isRsvpOpen || !supabase) {
@@ -719,12 +758,52 @@ function App() {
     )
   }
 
+  function handleMemberFieldChange(
+    memberId: string,
+    field: 'fullName' | 'identityDocument' | 'phone' | 'email' | 'allergies',
+    value: string,
+  ) {
+    setFamilyMembers((current) =>
+      current.map((member) => (member.id === memberId ? { ...member, [field]: value } : member)),
+    )
+  }
+
+  function handlePrimaryContactChange(memberId: string) {
+    setFamilyMembers((current) =>
+      current.map((member) => ({
+        ...member,
+        isPrimaryContact: member.id === memberId,
+      })),
+    )
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     if (attendingCount === 0) {
       setSubmitState('error')
       setFeedbackMessage('Selecciona por lo menos una persona asistente dentro de la invitación.')
+      return
+    }
+
+    if (!principalContact) {
+      setSubmitState('error')
+      setFeedbackMessage('Selecciona un contacto principal entre las personas que asistirán.')
+      return
+    }
+
+    const incompleteAttendee = attendingMembers.find(
+      (member) =>
+        !member.fullName.trim() ||
+        !member.identityDocument.trim() ||
+        !member.phone.trim() ||
+        !member.email.trim() ||
+        !member.allergies.trim(),
+    )
+
+    if (incompleteAttendee) {
+      setSubmitState('error')
+      setFeedbackMessage(`Completa todos los datos de ${incompleteAttendee.name}, incluida la sección de alergias.`)
       return
     }
 
@@ -791,19 +870,26 @@ function App() {
     const membersSummary = familyMembers
       .map((member) => `${member.name}: ${member.attending ? 'Asiste' : 'No asiste'}`)
       .join(' | ')
+    const attendingMembersDetails = attendingMembers
+      .map(
+        (member) =>
+          `${member.fullName.trim()}${member.isPrimaryContact ? ' (contacto principal)' : ''} | ID: ${member.identityDocument.trim()} | Tel: ${member.phone.trim()} | Correo: ${member.email.trim()} | Alergias: ${member.allergies.trim()}`,
+      )
+      .join(' || ')
 
     const payload = {
-      full_name: formData.fullName.trim(),
-      identity_document: formData.identityDocument.trim(),
-      phone: formData.phone.trim(),
+      full_name: principalContact.fullName.trim(),
+      identity_document: principalContact.identityDocument.trim(),
+      phone: principalContact.phone.trim(),
       description:
         [
           `Código de invitación: ${activeInvitation.code}`,
           `Invitación visible: ${activeInvitation.label}`,
           `Tipo de invitación: ${invitationType === 'family' ? 'Familiar' : 'Individual'}`,
           `Miembros: ${membersSummary}`,
+          `Datos asistentes: ${attendingMembersDetails}`,
           `Modo de hospedaje: ${travelGroupOptions.find((option) => option.value === formData.travelGroupMode)?.title ?? 'Sin definir'}`,
-          buildGroupSummary(formData, activeInvitation.code),
+          buildGroupSummary(formData, activeInvitation.code, principalContactName),
           requiresOwnLodgingDetails && selectedRoomOption ? `Habitación seleccionada: ${selectedRoomOption.label}` : '',
           requiresOwnLodgingDetails && selectedNightCount ? `Noches: ${selectedNightCount}` : '',
           requiresOwnLodgingDetails && selectedPricePerPerson
@@ -836,7 +922,7 @@ function App() {
       boarding_point: requiresOwnLodgingDetails
         ? formData.boardingPoint.trim() || null
         : selectedGroupLodgingDetails?.boardingPoint || null,
-      allergies: formData.allergies.trim() || null,
+      allergies: attendingMembers.map((member) => `${member.fullName.trim()}: ${member.allergies.trim()}`).join(' | ') || null,
       notes:
         [
           formData.notes.trim(),
@@ -860,7 +946,7 @@ function App() {
       const createdGroup: ExistingGroupOption = {
         id: generateGroupCode(activeInvitation.code, formData.groupName),
         label: formData.groupName.trim(),
-        leaderName: formData.groupLeaderName.trim() || formData.fullName.trim(),
+        leaderName: formData.groupLeaderName.trim() || principalContactName,
         room: formData.room.trim(),
         numberOfNights: Number(formData.numberOfNights),
         checkInDate: formData.checkInDate,
@@ -917,7 +1003,7 @@ function App() {
               </div>
               <div>
                 <span className="meta-label">Hora</span>
-                <strong>4:00 PM</strong>
+                <strong>4:30 PM</strong>
               </div>
               <div>
                 <span className="meta-label">Lugar</span>
@@ -993,18 +1079,18 @@ function App() {
           <p className="eyebrow">Confirmación</p>
           <h2 className="attendance-info-title">Información importante</h2>
           <p className="attendance-info-copy">
-            Aquí encontrarás un resumen importante sobre el viaje, el plan, los tiempos y los datos
-            necesarios antes de completar tu respuesta.
+            Primero conoce las tarifas y la información del hospedaje antes de confirmar tu
+            asistencia.
           </p>
           <div className="attendance-info-actions">
             <button className="secondary-button" onClick={openInfoModal} type="button">
               Ver información completa
             </button>
-            <button className="decline-button" type="button">
-              No podré asistir
-            </button>
             <button className="primary-button" disabled={!isKnownInvitation} onClick={openRsvpModal} type="button">
               Asistiré
+            </button>
+            <button className="decline-button" type="button">
+              No podré asistir
             </button>
           </div>
         </section>
@@ -1108,44 +1194,6 @@ function App() {
             </p>
 
             <form className="rsvp-form" onSubmit={handleSubmit}>
-              <div className="full-span form-section-card is-soft">
-                <div className="form-section-heading">
-                  <span className="meta-label">Datos de contacto</span>
-                  <strong>Quién está diligenciando esta respuesta</strong>
-                </div>
-                <div className="contact-grid">
-                  <label>
-                    Contacto principal
-                    <input
-                      name="fullName"
-                      onChange={handleInputChange}
-                      required
-                      value={formData.fullName}
-                    />
-                  </label>
-
-                  <label>
-                    C.C o Pasaporte
-                    <input
-                      name="identityDocument"
-                      onChange={handleInputChange}
-                      required
-                      value={formData.identityDocument}
-                    />
-                  </label>
-
-                  <label className="phone-field">
-                    Teléfono
-                    <input name="phone" onChange={handleInputChange} required value={formData.phone} />
-                  </label>
-                </div>
-                <article className="member-summary-card">
-                  <span className="meta-label">Resumen</span>
-                  <strong>{attendingCount}</strong>
-                  <p>persona(s) confirmada(s) hasta ahora</p>
-                </article>
-              </div>
-
               <div className="full-span form-section-card">
                 <div className="flow-card-heading">
                   <span className="meta-label">Miembros de esta invitación</span>
@@ -1166,6 +1214,80 @@ function App() {
                     </label>
                   ))}
                 </div>
+                <article className="member-summary-card">
+                  <span className="meta-label">Resumen</span>
+                  <strong>{attendingCount}</strong>
+                  <p>persona(s) confirmada(s) hasta ahora</p>
+                </article>
+                {attendingMembers.length > 0 ? (
+                  <div className="attendee-details-list">
+                    {attendingMembers.map((member) => (
+                      <article className="attendee-details-card" key={`${member.id}-details`}>
+                        <div className="attendee-details-heading">
+                          <div>
+                            <span className="meta-label">Asistente</span>
+                            <strong>{member.name}</strong>
+                          </div>
+                          <label className="primary-contact-toggle">
+                            <input
+                              checked={member.isPrimaryContact}
+                              name="primaryContact"
+                              onChange={() => handlePrimaryContactChange(member.id)}
+                              type="radio"
+                            />
+                            <span>Contacto principal</span>
+                          </label>
+                        </div>
+                        <div className="attendee-details-grid">
+                          <label>
+                            Nombre
+                            <input
+                              onChange={(event) => handleMemberFieldChange(member.id, 'fullName', event.target.value)}
+                              required
+                              value={member.fullName}
+                            />
+                          </label>
+                          <label>
+                            ID o Pasaporte
+                            <input
+                              onChange={(event) =>
+                                handleMemberFieldChange(member.id, 'identityDocument', event.target.value)
+                              }
+                              required
+                              value={member.identityDocument}
+                            />
+                          </label>
+                          <label>
+                            Teléfono
+                            <input
+                              onChange={(event) => handleMemberFieldChange(member.id, 'phone', event.target.value)}
+                              required
+                              value={member.phone}
+                            />
+                          </label>
+                          <label>
+                            Correo
+                            <input
+                              onChange={(event) => handleMemberFieldChange(member.id, 'email', event.target.value)}
+                              required
+                              type="email"
+                              value={member.email}
+                            />
+                          </label>
+                          <label className="full-span">
+                            Alergias
+                            <textarea
+                              onChange={(event) => handleMemberFieldChange(member.id, 'allergies', event.target.value)}
+                              required
+                              rows={3}
+                              value={member.allergies}
+                            />
+                          </label>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               {attendingCount > 0 ? (
@@ -1368,15 +1490,6 @@ function App() {
                         />
                       </label>
 
-                      <label className="full-span">
-                        Alergias
-                        <textarea
-                          name="allergies"
-                          onChange={handleInputChange}
-                          rows={3}
-                          value={formData.allergies}
-                        />
-                      </label>
                     </div>
 
                     {selectedRoomOption && selectedNightCount && selectedPricePerPerson && selectedStayTotal ? (

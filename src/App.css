@@ -386,10 +386,15 @@
 }
 
 .attendance-info-actions {
-  display: flex;
+  display: grid;
   justify-content: center;
   gap: 14px;
-  flex-wrap: wrap;
+  width: min(360px, 100%);
+  margin: 0 auto;
+}
+
+.attendance-info-actions > * {
+  width: 100%;
 }
 
 .decline-button {
@@ -654,17 +659,6 @@
   line-height: 1.08;
 }
 
-.contact-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  align-items: stretch;
-}
-
-.phone-field {
-  min-width: 0;
-}
-
 .lodging-banner {
   border-radius: 24px;
   border: 1px solid rgba(127, 187, 166, 0.12);
@@ -803,6 +797,54 @@
   border-color: rgba(127, 187, 166, 0.3);
   background: rgba(240, 251, 246, 0.92);
   box-shadow: 0 12px 24px rgba(127, 187, 166, 0.08);
+}
+
+.attendee-details-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.attendee-details-card {
+  border-radius: 20px;
+  border: 1px solid rgba(127, 187, 166, 0.14);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 18px;
+}
+
+.attendee-details-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.attendee-details-heading strong {
+  display: block;
+  margin-top: 2px;
+}
+
+.primary-contact-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 187, 166, 0.16);
+  background: rgba(245, 252, 248, 0.88);
+  font-size: 0.88rem;
+}
+
+.primary-contact-toggle input {
+  width: auto;
+  margin: 0;
+}
+
+.attendee-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .rsvp-form .full-span {
@@ -967,12 +1009,18 @@
     padding: 24px 18px;
   }
 
-  .contact-grid {
+  .lodging-grid {
     grid-template-columns: 1fr;
   }
 
-  .lodging-grid {
+  .attendee-details-heading,
+  .attendee-details-grid {
     grid-template-columns: 1fr;
+  }
+
+  .attendee-details-heading {
+    display: grid;
+    justify-content: stretch;
   }
 
   .group-estimate-field {
