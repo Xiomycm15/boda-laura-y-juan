@@ -32,3 +32,28 @@ on public.wedding_rsvps
 for select
 to authenticated
 using (true);
+
+create table if not exists public.song_suggestions (
+  id uuid primary key default gen_random_uuid(),
+  invitation_code text,
+  invitation_label text,
+  guest_name text not null,
+  song_name text not null,
+  artist_name text not null,
+  song_link text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.song_suggestions enable row level security;
+
+create policy "Allow anonymous inserts for song suggestions"
+on public.song_suggestions
+for insert
+to anon
+with check (true);
+
+create policy "Allow authenticated users to read song suggestions"
+on public.song_suggestions
+for select
+to authenticated
+using (true);

@@ -3,6 +3,20 @@ import './App.css'
 import { supabase } from './lib/supabase'
 import portadaLauraJuan from './assets/images/portada-laura-juan.jpeg'
 import infoIslaMucura from './assets/info/info-isla-mucura.jpeg'
+import retratos01 from './assets/gallery/retratos-01.jpeg'
+import retratos02 from './assets/gallery/retratos-02.jpeg'
+import retratos03 from './assets/gallery/retratos-03.jpeg'
+import retratos04 from './assets/gallery/retratos-04.jpeg'
+import retratos05 from './assets/gallery/retratos-05.jpeg'
+import retratos06 from './assets/gallery/retratos-06.jpeg'
+import retratos07 from './assets/gallery/retratos-07.jpeg'
+import retratos08 from './assets/gallery/retratos-08.jpeg'
+import retratos09 from './assets/gallery/retratos-09.jpeg'
+import retratos10 from './assets/gallery/retratos-10.jpeg'
+import retratos11 from './assets/gallery/retratos-11.jpeg'
+import retratos12 from './assets/gallery/retratos-12.jpeg'
+import retratos13 from './assets/gallery/retratos-13.jpeg'
+import retratos14 from './assets/gallery/retratos-14.jpeg'
 
 type Countdown = {
   days: number
@@ -79,6 +93,13 @@ type RsvpFormData = {
   notes: string
 }
 
+type SongSuggestionFormData = {
+  guestName: string
+  songName: string
+  artistName: string
+  songLink: string
+}
+
 const weddingDate = new Date('2027-05-27T16:30:00')
 
 const invitationPresets: InvitationPreset[] = [
@@ -149,47 +170,28 @@ const initialFormData: RsvpFormData = {
   notes: '',
 }
 
-const timeline = [
-  {
-    time: '4:30 PM',
-    title: 'Ceremonia',
-    description: 'Nos encontraremos entre flores, velas y promesas para decirnos si para siempre.',
-  },
-  {
-    time: '6:00 PM',
-    title: 'Coctel al atardecer',
-    description: 'Brindis, abrazos largos y música suave mientras cae la tarde.',
-  },
-  {
-    time: '8:00 PM',
-    title: 'Cena y celebración',
-    description: 'Una mesa compartida, baile infinito y una noche para recordar.',
-  },
-]
+const initialSongSuggestionFormData: SongSuggestionFormData = {
+  guestName: '',
+  songName: '',
+  artistName: '',
+  songLink: '',
+}
 
-const moments = [
-  'Una historia que empezó con una conversación sencilla y terminó convirtiéndose en hogar.',
-  'Después de miles de cafés, viajes, risas y planes, elegimos celebrar el amor con quienes más queremos.',
-  'Queremos que esta invitación se sienta como un abrazo: íntima, cálida y muy nuestra.',
-]
-
-const details = [
-  {
-    label: 'Lugar',
-    value: 'Hacienda Las Camelias',
-  },
-  {
-    label: 'Ciudad',
-    value: 'Medellín, Colombia',
-  },
-  {
-    label: 'Dress code',
-    value: 'Formal elegante en tonos suaves',
-  },
-  {
-    label: 'Confirmación',
-    value: 'Antes del 20 de marzo de 2027',
-  },
+const lovePortraits = [
+  { src: retratos01, alt: 'Laura y Juan sonriéndose frente al mar al atardecer' },
+  { src: retratos02, alt: 'Laura y Juan abrazados junto al mar en Isla Múcura' },
+  { src: retratos03, alt: 'Laura y Juan abrazados frente al mar con el sol cayendo' },
+  { src: retratos04, alt: 'Laura y Juan tomados de la mano con vista panorámica urbana' },
+  { src: retratos05, alt: 'Laura y Juan riendo juntos en una noche especial' },
+  { src: retratos06, alt: 'Laura y Juan caminando de la mano por la playa' },
+  { src: retratos07, alt: 'Laura y Juan besándose frente a la Torre Eiffel' },
+  { src: retratos08, alt: 'Laura y Juan compartiendo una tarde juntos en una banca' },
+  { src: retratos09, alt: 'Laura y Juan abrazados en el mar cristalino' },
+  { src: retratos10, alt: 'Laura y Juan abrazados en un muelle frente al mar' },
+  { src: retratos11, alt: 'Laura y Juan buceando tomados de la mano' },
+  { src: retratos12, alt: 'Laura y Juan abrazados con vista al mar desde una montaña' },
+  { src: retratos13, alt: 'Laura y Juan sonriendo durante un viaje mágico' },
+  { src: retratos14, alt: 'Laura y Juan compartiendo un beso en Cartagena' },
 ]
 
 const travelGroupOptions = [
@@ -223,35 +225,21 @@ const lodgingOptions: LodgingOption[] = [
     label: 'Bungalow Deluxe - triple dos camas, vista frente al mar',
     totalRooms: 5,
     capacity: 3,
-    pricesByNight: { 1: 878251, 2: 1436503, 3: 1994754 },
+    pricesByNight: { 1: 941718, 2: 1563436, 3: 2185154 },
   },
   {
     id: 'bungalow-deluxe-doble-frente-mar',
     label: 'Bungalow Deluxe - doble, vista frente al mar',
-    totalRooms: 17,
+    totalRooms: 10,
     capacity: 2,
     pricesByNight: { 1: 1032877, 2: 1745754, 3: 2458631 },
   },
   {
     id: 'bungalow-deluxe-pool-doble-frente-mar',
-    label: 'Bungalow Deluxe Pool - doble, frente al mar',
-    totalRooms: 17,
+    label: 'Bungalow Deluxe Pool Privada - doble frente al mar',
+    totalRooms: 3,
     capacity: 2,
     pricesByNight: { 1: 1134339, 2: 1948677, 3: 2763016 },
-  },
-  {
-    id: 'bungalow-pool-deluxe-doble-frente-mar',
-    label: 'Bungalow Pool Deluxe - doble, vista frente al mar',
-    totalRooms: 4,
-    capacity: 2,
-    pricesByNight: { 1: 1134339, 2: 1948677, 3: 2763016 },
-  },
-  {
-    id: 'bungalow-deluxe-doble-mayo',
-    label: 'Bungalow Deluxe - doble, vista frente al mar (28 al 31 de mayo)',
-    totalRooms: 4,
-    capacity: 2,
-    pricesByNight: { 1: 569000, 2: 818000, 3: 1067000 },
   },
   {
     id: 'bungalow-familiar-cuadruple-frente-mar',
@@ -262,14 +250,14 @@ const lodgingOptions: LodgingOption[] = [
   },
   {
     id: 'cabana-familiar-quintuple',
-    label: 'Cabaña Familiar - quintuples con aire',
+    label: 'Cabaña Familiar - quintuple con aire',
     totalRooms: 2,
     capacity: 5,
     pricesByNight: { 1: 830146, 2: 1340291, 3: 1850437 },
   },
   {
     id: 'kiosko-jardin-deluxe-cuadruple',
-    label: 'Kiosko Jardín Deluxe - cuadruple, vista al jardín con aire',
+    label: 'Kiosko Jardín Deluxe - cuadruple, vista al jardín',
     totalRooms: 6,
     capacity: 4,
     pricesByNight: { 1: 827416, 2: 1334832, 3: 1842248 },
@@ -296,22 +284,8 @@ const lodgingOptions: LodgingOption[] = [
     pricesByNight: { 1: 826189, 2: 1332378, 3: 1838566 },
   },
   {
-    id: 'villa-piscina-oasis-triple',
-    label: 'Villa Piscina Oasis - triple, vista al jardín',
-    totalRooms: 7,
-    capacity: 2,
-    pricesByNight: { 1: 569000, 2: 818000, 3: 1067000 },
-  },
-  {
-    id: 'villa-piscina-oasis-doble',
-    label: 'Villa Piscina Oasis - doble, vista al jardín',
-    totalRooms: 3,
-    capacity: 2,
-    pricesByNight: { 1: 912613, 2: 1505225, 3: 2097838 },
-  },
-  {
     id: 'villa-piscina-triple-con-piscina',
-    label: 'Villa Piscina - triple con piscina, vista al jardín con aire',
+    label: 'Villa Piscina - triple con piscina privada, vista al jardín',
     totalRooms: 3,
     capacity: 3,
     pricesByNight: { 1: 878147, 2: 1436293, 3: 1994440 },
@@ -325,15 +299,15 @@ const lodgingOptions: LodgingOption[] = [
   },
   {
     id: 'kiosko-deluxe-elevado-presidencial',
-    label: 'Kiosko Deluxe Elevado Presidencial - cuadruple vista panorámica frente al mar',
+    label: 'Kiosko Deluxe Elevado Presidencial - cuadruple vista panorámica frente al mar (No se admiten niños)',
     totalRooms: 1,
     capacity: 4,
-    pricesByNight: { 1: 826709, 2: 1333419, 3: 1840128 },
+    pricesByNight: { 1: 866500, 2: 1413000, 3: 1959500 },
   },
   {
     id: 'kiosko-deluxe-elevado-doble',
-    label: 'Kiosko Deluxe Elevado - doble vista panorámica frente al mar',
-    totalRooms: 5,
+    label: 'Kiosko Deluxe Elevado - doble vista panorámica frente al mar (No se admiten niños)',
+    totalRooms: 4,
     capacity: 2,
     pricesByNight: { 1: 956595, 2: 1593190, 3: 2229785 },
   },
@@ -415,6 +389,31 @@ function formatCurrency(value: number) {
   }).format(value)
 }
 
+function getNightDifference(checkInDate: string, checkOutDate: string) {
+  if (!checkInDate || !checkOutDate) {
+    return null
+  }
+
+  const [checkInYear, checkInMonth, checkInDay] = checkInDate.split('-').map(Number)
+  const [checkOutYear, checkOutMonth, checkOutDay] = checkOutDate.split('-').map(Number)
+
+  if (
+    !checkInYear ||
+    !checkInMonth ||
+    !checkInDay ||
+    !checkOutYear ||
+    !checkOutMonth ||
+    !checkOutDay
+  ) {
+    return null
+  }
+
+  const checkInUtc = Date.UTC(checkInYear, checkInMonth - 1, checkInDay)
+  const checkOutUtc = Date.UTC(checkOutYear, checkOutMonth - 1, checkOutDay)
+
+  return Math.round((checkOutUtc - checkInUtc) / (1000 * 60 * 60 * 24))
+}
+
 function parseCreatedGroup(description: string): ExistingGroupOption | null {
   const groupNameMatch = description.match(/Crea grupo compartido:\s*([^|]+)/)
   const groupIdMatch = description.match(/ID del grupo:\s*([^|]+)/)
@@ -490,6 +489,10 @@ function App() {
   const [countdown, setCountdown] = useState<Countdown>(() => getCountdown(weddingDate))
   const [isRsvpOpen, setIsRsvpOpen] = useState(false)
   const [isInfoOpen, setIsInfoOpen] = useState(false)
+  const [isSongModalOpen, setIsSongModalOpen] = useState(false)
+  const [isDressCodeModalOpen, setIsDressCodeModalOpen] = useState(false)
+  const [activePortraitIndex, setActivePortraitIndex] = useState(0)
+  const [visiblePortraits, setVisiblePortraits] = useState(() => (window.innerWidth <= 900 ? 1 : 3))
   const [activeInvitation] = useState<InvitationPreset>(() => getInvitationFromSearch())
   const [familyMembers, setFamilyMembers] = useState<InvitationMember[]>(() => createMembers(getInvitationFromSearch()))
   const [formData, setFormData] = useState<RsvpFormData>({
@@ -502,6 +505,8 @@ function App() {
   const [existingGroups, setExistingGroups] = useState<ExistingGroupOption[]>([])
   const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false)
   const [availabilityError, setAvailabilityError] = useState('')
+  const [songSuggestionForm, setSongSuggestionForm] = useState<SongSuggestionFormData>(initialSongSuggestionFormData)
+  const [songSuggestionFeedback, setSongSuggestionFeedback] = useState('')
 
   const invitationType = getInvitationType(activeInvitation)
   const attendingMembers = familyMembers.filter((member) => member.attending)
@@ -533,6 +538,7 @@ function App() {
     formData.travelGroupMode === 'join'
       ? existingGroups.find((group) => group.id === formData.groupName) ?? null
       : null
+  const maxPortraitIndex = Math.max(lovePortraits.length - visiblePortraits, 0)
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -543,12 +549,35 @@ function App() {
   }, [])
 
   useEffect(() => {
-    document.body.classList.toggle('modal-open', isRsvpOpen || isInfoOpen)
+    const portraitIntervalId = window.setInterval(() => {
+      setActivePortraitIndex((currentIndex) => (currentIndex >= maxPortraitIndex ? 0 : currentIndex + 1))
+    }, 4800)
+
+    return () => window.clearInterval(portraitIntervalId)
+  }, [maxPortraitIndex])
+
+  useEffect(() => {
+    function handleResize() {
+      setVisiblePortraits(window.innerWidth <= 900 ? 1 : 3)
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  useEffect(() => {
+    setActivePortraitIndex((currentIndex) => Math.min(currentIndex, maxPortraitIndex))
+  }, [maxPortraitIndex])
+
+  useEffect(() => {
+    document.body.classList.toggle('modal-open', isRsvpOpen || isInfoOpen || isSongModalOpen || isDressCodeModalOpen)
 
     return () => {
       document.body.classList.remove('modal-open')
     }
-  }, [isInfoOpen, isRsvpOpen])
+  }, [isDressCodeModalOpen, isInfoOpen, isRsvpOpen, isSongModalOpen])
 
   useEffect(() => {
     if (attendingCount > 0) {
@@ -705,6 +734,70 @@ function App() {
     setIsInfoOpen(false)
   }
 
+  function openSongModal() {
+    setIsSongModalOpen(true)
+    setSongSuggestionFeedback('')
+  }
+
+  function closeSongModal() {
+    setIsSongModalOpen(false)
+  }
+
+  function openDressCodeModal() {
+    setIsDressCodeModalOpen(true)
+  }
+
+  function closeDressCodeModal() {
+    setIsDressCodeModalOpen(false)
+  }
+
+  function showPreviousPortrait() {
+    setActivePortraitIndex((currentIndex) => (currentIndex <= 0 ? maxPortraitIndex : currentIndex - 1))
+  }
+
+  function showNextPortrait() {
+    setActivePortraitIndex((currentIndex) => (currentIndex >= maxPortraitIndex ? 0 : currentIndex + 1))
+  }
+
+  function handleSongSuggestionInputChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const { name, value } = event.target
+
+    setSongSuggestionForm((current) => ({
+      ...current,
+      [name]: value,
+    }))
+  }
+
+  async function handleSongSuggestionSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!supabase) {
+      setSongSuggestionFeedback('No se pudo guardar la canción. Revisa la configuración de Supabase.')
+      return
+    }
+
+    const payload = {
+      invitation_code: isKnownInvitation ? activeInvitation.code : null,
+      invitation_label: isKnownInvitation ? activeInvitation.label : null,
+      guest_name: songSuggestionForm.guestName.trim(),
+      song_name: songSuggestionForm.songName.trim(),
+      artist_name: songSuggestionForm.artistName.trim(),
+      song_link: songSuggestionForm.songLink.trim() || null,
+    }
+
+    const { error } = await supabase.from('song_suggestions').insert(payload)
+
+    if (error) {
+      setSongSuggestionFeedback('No se pudo guardar la canción. Intenta de nuevo.')
+      return
+    }
+
+    setSongSuggestionFeedback('Canción sugerida con éxito.')
+    setSongSuggestionForm(initialSongSuggestionFormData)
+  }
+
   function handleInputChange(
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) {
@@ -858,6 +951,18 @@ function App() {
       return
     }
 
+    if (requiresOwnLodgingDetails && selectedNightCount) {
+      const selectedNightDifference = getNightDifference(formData.checkInDate, formData.checkOutDate)
+
+      if (selectedNightDifference === null || selectedNightDifference !== Number(selectedNightCount)) {
+        setSubmitState('error')
+        setFeedbackMessage(
+          `La fecha de ingreso y la fecha de salida deben coincidir con ${selectedNightCount} noche(s).`,
+        )
+        return
+      }
+    }
+
     if (requiresOwnLodgingDetails && selectedRemainingRooms !== null && selectedRemainingRooms <= 0) {
       setSubmitState('error')
       setFeedbackMessage('La habitación elegida ya no tiene disponibilidad. Elige otra opción.')
@@ -1008,6 +1113,7 @@ function App() {
               <div>
                 <span className="meta-label">Lugar</span>
                 <strong>Hotel Isla Múcura</strong>
+                <span className="meta-support-copy">Frente al mar en el jardin del hotel</span>
               </div>
             </div>
           </div>
@@ -1048,6 +1154,7 @@ function App() {
         <section className="venue-section">
           <p className="eyebrow">Lugar</p>
           <h2 className="venue-title">Hostel Isla Múcura</h2>
+          <p className="venue-subcopy">Frente al mar en el jardin del hotel</p>
           <p className="venue-copy">
             Hemos elegido este rincón del Caribe para celebrar juntos un fin de semana inolvidable.
           </p>
@@ -1095,79 +1202,113 @@ function App() {
           </div>
         </section>
 
-        <section className="story-section">
+        <section className="portraits-section" aria-label="Retratos de nuestro amor">
           <div className="section-heading">
-            <p className="eyebrow">Nuestra historia</p>
-            <h2>Una invitación íntima con aire vintage</h2>
+            <p className="eyebrow">Retratos de nuestro amor</p>
+            <h2>Pedacitos de historia que nos trajeron hasta aquí</h2>
+            <p className="portraits-copy">
+              Un recorrido por momentos, viajes y miradas que han hecho aún más bonito este amor.
+            </p>
           </div>
-          <div className="story-grid">
-            <article className="story-card quote-card">
-              <p>
-                “El amor verdadero no hace ruido. Se queda, florece y convierte lo cotidiano en
-                algo extraordinario.”
-              </p>
-            </article>
-            {moments.map((moment) => (
-              <article className="story-card" key={moment}>
-                <p>{moment}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="details-section">
-          <div className="section-heading aligned-left">
-            <p className="eyebrow">Detalles del día</p>
-            <h2>Todo lo que necesitas para acompañarnos</h2>
-          </div>
-          <div className="details-grid">
-            {details.map((detail) => (
-              <article className="detail-card" key={detail.label}>
-                <span>{detail.label}</span>
-                <strong>{detail.value}</strong>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="timeline-section">
-          <div className="section-heading">
-            <p className="eyebrow">Agenda</p>
-            <h2>Un día pensado para celebrar despacio</h2>
-          </div>
-          <div className="timeline-list">
-            {timeline.map((item) => (
-              <article className="timeline-card" key={item.time}>
-                <span>{item.time}</span>
-                <h3>{item.title}</h3>
-                <p>{item.description}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="closing-section" id="rsvp">
-          <p className="eyebrow">RSVP</p>
-          <h2>{isKnownInvitation ? activeInvitation.label : 'Esperando enlace personalizado'}</h2>
-          <p>
-            {isKnownInvitation
-              ? `Esta invitación está lista para confirmar a ${activeInvitation.members.length} integrante(s) y decidir si se hospeda sola o comparte grupo con otra familia.`
-              : 'Cuando abras un enlace real de invitación, aquí aparecerá el nombre de la familia o del invitado correspondiente.'}
-          </p>
-          <div className="closing-actions">
-            <button className="primary-button" disabled={!isKnownInvitation} type="button" onClick={openRsvpModal}>
-              Completar formulario
-            </button>
-            <a
-              className="secondary-button"
-              href="https://maps.google.com"
-              target="_blank"
-              rel="noreferrer"
+          <div className="portraits-carousel">
+            <button
+              aria-label="Ver retrato anterior"
+              className="portrait-arrow is-left"
+              onClick={showPreviousPortrait}
+              type="button"
             >
-              Ver ubicación
-            </a>
+              ‹
+            </button>
+            <div className="portraits-viewport">
+              <div
+                className="portraits-track"
+                style={{ transform: `translateX(calc(-${activePortraitIndex} * (100% / var(--portraits-visible))))` }}
+              >
+                {lovePortraits.map((portrait, index) => (
+                  <figure className="portrait-slide" key={portrait.src}>
+                    <img
+                      alt={portrait.alt}
+                      className="portrait-image"
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                      src={portrait.src}
+                    />
+                  </figure>
+                ))}
+              </div>
+            </div>
+            <button
+              aria-label="Ver siguiente retrato"
+              className="portrait-arrow is-right"
+              onClick={showNextPortrait}
+              type="button"
+            >
+              ›
+            </button>
+          </div>
+          <div className="portrait-dots" aria-label="Indicadores de retratos">
+            {lovePortraits.map((portrait, index) => (
+              <button
+                aria-label={`Ir al retrato ${index + 1}`}
+                aria-pressed={activePortraitIndex === index}
+                className={`portrait-dot ${activePortraitIndex === index ? 'is-active' : ''}`}
+                key={`${portrait.src}-dot`}
+                onClick={() => setActivePortraitIndex(index)}
+                type="button"
+              />
+            ))}
           </div>
         </section>
+
+        <section className="party-section" aria-label="Fiesta">
+          <div className="section-heading">
+            <p className="eyebrow">Fiesta</p>
+            <h2>Hagamos juntos una fiesta épica.</h2>
+            <p className="party-copy">Aquí algunos detalles a tener en cuenta.</p>
+          </div>
+          <div className="party-grid">
+            <article className="party-card">
+              <span className="meta-label">Música</span>
+              <strong>¿Cuál es la canción que no debe faltar en la playlist de la fiesta?</strong>
+              <button className="secondary-button" onClick={openSongModal} type="button">
+                Sugerir cancion
+              </button>
+            </article>
+            <article className="party-card">
+              <span className="meta-label">Dress code</span>
+              <strong>Una orientación para tu vestuario</strong>
+              <button className="secondary-button" onClick={openDressCodeModal} type="button">
+                Ver mas
+              </button>
+            </article>
+          </div>
+        </section>
+
+        <section className="contact-section" aria-label="Contacto de los novios">
+          <div className="section-heading">
+            <p className="eyebrow">Contacto</p>
+            <h2>Si tienes dudas o preguntas, aquí estamos para ti</h2>
+            <p className="contact-copy">
+              Queremos que disfrutes este viaje con tranquilidad. Si necesitas ayuda, puedes escribirnos directamente.
+            </p>
+          </div>
+          <div className="contact-grid">
+            <article className="contact-card">
+              <span className="meta-label">Novia</span>
+              <strong>Laura</strong>
+              <a className="secondary-button" href="https://wa.me/573197659146" rel="noreferrer" target="_blank">
+                +57 3197659146
+              </a>
+            </article>
+            <article className="contact-card">
+              <span className="meta-label">Novio</span>
+              <strong>Juan Camilo</strong>
+              <a className="secondary-button" href="https://wa.me/573195852884" rel="noreferrer" target="_blank">
+                +57 3195852884
+              </a>
+            </article>
+          </div>
+        </section>
+
       </main>
 
       {isRsvpOpen && isKnownInvitation ? (
@@ -1201,17 +1342,78 @@ function App() {
                 </div>
                 <div className="member-grid">
                   {familyMembers.map((member) => (
-                    <label className={`member-card ${member.attending ? 'is-attending' : ''}`} key={member.id}>
-                      <input
-                        checked={member.attending}
-                        onChange={() => handleMemberAttendanceChange(member.id)}
-                        type="checkbox"
-                      />
-                      <div>
-                        <strong>{member.name}</strong>
-                        <p>{member.attending ? 'Asiste a la boda' : 'No asistirá'}</p>
-                      </div>
-                    </label>
+                    <div className="member-stack" key={member.id}>
+                      <label className={`member-card ${member.attending ? 'is-attending' : ''}`}>
+                        <input
+                          checked={member.attending}
+                          onChange={() => handleMemberAttendanceChange(member.id)}
+                          type="checkbox"
+                        />
+                        <div>
+                          <strong>{member.name}</strong>
+                          <p>{member.attending ? 'Asiste a la boda' : 'No asistirá'}</p>
+                        </div>
+                      </label>
+                      {member.attending ? (
+                        <details className="attendee-details-card" open>
+                          <summary className="attendee-details-heading">
+                            <span className="meta-label">Datos del asistente</span>
+                            <span aria-hidden="true" className="attendee-details-toggle" />
+                          </summary>
+                          <div className="attendee-details-body">
+                            <label className="primary-contact-toggle">
+                              <input
+                                checked={member.isPrimaryContact}
+                                name="primaryContact"
+                                onChange={() => handlePrimaryContactChange(member.id)}
+                                type="radio"
+                              />
+                              <span>Contacto principal</span>
+                            </label>
+                            <div className="attendee-details-grid">
+                              <label>
+                                ID o Pasaporte
+                                <input
+                                  onChange={(event) =>
+                                    handleMemberFieldChange(member.id, 'identityDocument', event.target.value)
+                                  }
+                                  required
+                                  value={member.identityDocument}
+                                />
+                              </label>
+                              <label>
+                                Teléfono
+                                <input
+                                  onChange={(event) => handleMemberFieldChange(member.id, 'phone', event.target.value)}
+                                  required
+                                  value={member.phone}
+                                />
+                              </label>
+                              <label>
+                                Correo
+                                <input
+                                  onChange={(event) => handleMemberFieldChange(member.id, 'email', event.target.value)}
+                                  required
+                                  type="email"
+                                  value={member.email}
+                                />
+                              </label>
+                              <label className="full-span">
+                                Alergias
+                                <textarea
+                                  onChange={(event) =>
+                                    handleMemberFieldChange(member.id, 'allergies', event.target.value)
+                                  }
+                                  required
+                                  rows={3}
+                                  value={member.allergies}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </details>
+                      ) : null}
+                    </div>
                   ))}
                 </div>
                 <article className="member-summary-card">
@@ -1219,75 +1421,6 @@ function App() {
                   <strong>{attendingCount}</strong>
                   <p>persona(s) confirmada(s) hasta ahora</p>
                 </article>
-                {attendingMembers.length > 0 ? (
-                  <div className="attendee-details-list">
-                    {attendingMembers.map((member) => (
-                      <article className="attendee-details-card" key={`${member.id}-details`}>
-                        <div className="attendee-details-heading">
-                          <div>
-                            <span className="meta-label">Asistente</span>
-                            <strong>{member.name}</strong>
-                          </div>
-                          <label className="primary-contact-toggle">
-                            <input
-                              checked={member.isPrimaryContact}
-                              name="primaryContact"
-                              onChange={() => handlePrimaryContactChange(member.id)}
-                              type="radio"
-                            />
-                            <span>Contacto principal</span>
-                          </label>
-                        </div>
-                        <div className="attendee-details-grid">
-                          <label>
-                            Nombre
-                            <input
-                              onChange={(event) => handleMemberFieldChange(member.id, 'fullName', event.target.value)}
-                              required
-                              value={member.fullName}
-                            />
-                          </label>
-                          <label>
-                            ID o Pasaporte
-                            <input
-                              onChange={(event) =>
-                                handleMemberFieldChange(member.id, 'identityDocument', event.target.value)
-                              }
-                              required
-                              value={member.identityDocument}
-                            />
-                          </label>
-                          <label>
-                            Teléfono
-                            <input
-                              onChange={(event) => handleMemberFieldChange(member.id, 'phone', event.target.value)}
-                              required
-                              value={member.phone}
-                            />
-                          </label>
-                          <label>
-                            Correo
-                            <input
-                              onChange={(event) => handleMemberFieldChange(member.id, 'email', event.target.value)}
-                              required
-                              type="email"
-                              value={member.email}
-                            />
-                          </label>
-                          <label className="full-span">
-                            Alergias
-                            <textarea
-                              onChange={(event) => handleMemberFieldChange(member.id, 'allergies', event.target.value)}
-                              required
-                              rows={3}
-                              value={member.allergies}
-                            />
-                          </label>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : null}
               </div>
 
               {attendingCount > 0 ? (
@@ -1442,6 +1575,8 @@ function App() {
                       <label>
                         Fecha de ingreso
                         <input
+                          max="2027-06-30"
+                          min="2027-05-01"
                           name="checkInDate"
                           onChange={handleInputChange}
                           required
@@ -1453,6 +1588,8 @@ function App() {
                       <label>
                         Fecha de salida
                         <input
+                          max="2027-06-30"
+                          min="2027-05-01"
                           name="checkOutDate"
                           onChange={handleInputChange}
                           required
@@ -1478,15 +1615,6 @@ function App() {
                           onChange={handleInputChange}
                           type="time"
                           value={formData.departureTime}
-                        />
-                      </label>
-
-                      <label className="full-span">
-                        Punto de abordaje
-                        <input
-                          name="boardingPoint"
-                          onChange={handleInputChange}
-                          value={formData.boardingPoint}
                         />
                       </label>
 
@@ -1556,6 +1684,101 @@ function App() {
               className="info-modal-image"
               src={infoIslaMucura}
             />
+          </section>
+        </div>
+      ) : null}
+
+      {isSongModalOpen ? (
+        <div className="modal-backdrop" role="presentation" onClick={closeSongModal}>
+          <section
+            aria-labelledby="song-suggestion-modal-title"
+            aria-modal="true"
+            className="party-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <button
+              aria-label="Cerrar formulario de canción"
+              className="modal-close"
+              onClick={closeSongModal}
+              type="button"
+            >
+              ×
+            </button>
+            <p className="eyebrow">Música</p>
+            <h2 id="song-suggestion-modal-title">Sugerir canción</h2>
+            <form className="party-form" onSubmit={handleSongSuggestionSubmit}>
+              <label>
+                Tu Nombre
+                <input
+                  name="guestName"
+                  onChange={handleSongSuggestionInputChange}
+                  required
+                  value={songSuggestionForm.guestName}
+                />
+              </label>
+              <label>
+                Nombre de cancion
+                <input
+                  name="songName"
+                  onChange={handleSongSuggestionInputChange}
+                  required
+                  value={songSuggestionForm.songName}
+                />
+              </label>
+              <label>
+                Autor
+                <input
+                  name="artistName"
+                  onChange={handleSongSuggestionInputChange}
+                  required
+                  value={songSuggestionForm.artistName}
+                />
+              </label>
+              <label>
+                Si desea ingrese el link de YouTube o Spotify aqui
+                <input
+                  name="songLink"
+                  onChange={handleSongSuggestionInputChange}
+                  type="url"
+                  value={songSuggestionForm.songLink}
+                />
+              </label>
+              {songSuggestionFeedback ? <p className="form-feedback is-success">{songSuggestionFeedback}</p> : null}
+              <div className="form-actions">
+                <button className="secondary-button" onClick={closeSongModal} type="button">
+                  Cerrar
+                </button>
+                <button className="primary-button" type="submit">
+                  Sugerir cancion
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+
+      {isDressCodeModalOpen ? (
+        <div className="modal-backdrop" role="presentation" onClick={closeDressCodeModal}>
+          <section
+            aria-labelledby="dress-code-modal-title"
+            aria-modal="true"
+            className="party-modal party-modal--compact"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <button
+              aria-label="Cerrar dress code"
+              className="modal-close"
+              onClick={closeDressCodeModal}
+              type="button"
+            >
+              ×
+            </button>
+            <p className="eyebrow">Dress code</p>
+            <h2 id="dress-code-modal-title">White party</h2>
+            <p className="modal-copy">Todos de blanco</p>
+            <p className="modal-copy">Estilo <span className="dress-code-accent">boho chic</span></p>
           </section>
         </div>
       ) : null}

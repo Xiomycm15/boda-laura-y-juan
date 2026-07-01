@@ -327,7 +327,10 @@
 .personalized-section,
 .invitees-section,
 .venue-section,
-.attendance-info-section {
+.attendance-info-section,
+.portraits-section,
+.party-section,
+.contact-section {
   margin-top: 24px;
   padding: 40px 24px;
   border-radius: 28px;
@@ -370,6 +373,199 @@
     radial-gradient(circle at top, rgba(191, 227, 211, 0.14), transparent 36%),
     linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(246, 250, 247, 0.96));
   box-shadow: 0 22px 58px rgba(127, 187, 166, 0.08);
+}
+
+.portraits-section {
+  border: 1px solid rgba(127, 187, 166, 0.18);
+  background:
+    radial-gradient(circle at top right, rgba(191, 227, 211, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(244, 250, 247, 0.96));
+  box-shadow: 0 22px 58px rgba(127, 187, 166, 0.08);
+}
+
+.party-section {
+  border: 1px solid rgba(127, 187, 166, 0.18);
+  background:
+    radial-gradient(circle at bottom left, rgba(191, 227, 211, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 250, 246, 0.96));
+  box-shadow: 0 22px 58px rgba(127, 187, 166, 0.08);
+}
+
+.contact-section {
+  border: 1px solid rgba(127, 187, 166, 0.18);
+  background:
+    radial-gradient(circle at top left, rgba(191, 227, 211, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(244, 249, 246, 0.96));
+  box-shadow: 0 22px 58px rgba(127, 187, 166, 0.08);
+}
+
+.party-copy {
+  width: min(760px, 100%);
+  margin: 12px auto 0;
+  text-align: center;
+}
+
+.contact-copy {
+  width: min(760px, 100%);
+  margin: 12px auto 0;
+  text-align: center;
+}
+
+.party-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.party-card {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(127, 187, 166, 0.14);
+  background: rgba(252, 255, 252, 0.84);
+  box-shadow: 0 16px 36px rgba(127, 187, 166, 0.08);
+}
+
+.contact-card {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 14px;
+  padding: 28px 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(127, 187, 166, 0.14);
+  background: rgba(252, 255, 252, 0.84);
+  box-shadow: 0 16px 36px rgba(127, 187, 166, 0.08);
+  text-align: center;
+}
+
+.party-card strong {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.7rem;
+  line-height: 1.12;
+  color: var(--ink-strong);
+}
+
+.contact-card strong {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  line-height: 1.08;
+  color: var(--ink-strong);
+}
+
+.party-card .secondary-button {
+  width: fit-content;
+}
+
+.contact-card .secondary-button {
+  width: fit-content;
+}
+
+.portraits-copy {
+  width: min(760px, 100%);
+  margin: 12px auto 0;
+  text-align: center;
+}
+
+.portraits-carousel {
+  --portraits-visible: 3;
+  position: relative;
+  margin-top: 28px;
+}
+
+.portraits-viewport {
+  width: min(79%, 900px);
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(127, 187, 166, 0.18);
+  box-shadow: 0 24px 52px rgba(54, 80, 70, 0.12);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.portraits-track {
+  display: flex;
+  transition: transform 420ms ease;
+}
+
+.portrait-slide {
+  flex: 0 0 calc(100% / var(--portraits-visible));
+  margin: 0;
+  aspect-ratio: 3 / 4;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(247, 252, 249, 0.96), rgba(255, 252, 247, 0.96));
+}
+
+.portrait-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 22px;
+}
+
+.portrait-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--mint-700);
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 14px 28px rgba(54, 80, 70, 0.14);
+  transform: translateY(-50%);
+}
+
+.portrait-arrow.is-left {
+  left: 16px;
+}
+
+.portrait-arrow.is-right {
+  right: 16px;
+}
+
+.portrait-dots {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.portrait-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(127, 187, 166, 0.28);
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    background 180ms ease;
+}
+
+.portrait-dot.is-active {
+  background: var(--mint-700);
+  transform: scale(1.15);
 }
 
 .attendance-info-title {
@@ -423,6 +619,13 @@
   margin: 8px 0 12px;
   font-size: clamp(2.4rem, 3.8vw, 3.8rem);
   line-height: 1.02;
+}
+
+.venue-subcopy {
+  margin: -2px auto 14px;
+  width: min(560px, 100%);
+  color: var(--mint-700);
+  font-size: 0.98rem;
 }
 
 .venue-copy {
@@ -525,6 +728,15 @@
   color: var(--ink-strong);
 }
 
+.detail-card p,
+.meta-support-copy {
+  display: block;
+  margin-top: 8px;
+  color: var(--mint-700);
+  font-size: 0.94rem;
+  line-height: 1.4;
+}
+
 .timeline-card h3 {
   margin: 0 0 10px;
   font-size: 1.5rem;
@@ -589,6 +801,38 @@
   padding: 32px;
 }
 
+.party-modal {
+  position: relative;
+  width: min(640px, 100%);
+  max-height: min(92vh, 920px);
+  overflow: auto;
+  border-radius: 28px;
+  border: 1px solid rgba(127, 187, 166, 0.24);
+  background:
+    radial-gradient(circle at top, rgba(244, 251, 247, 0.94), transparent 28%),
+    linear-gradient(180deg, rgba(252, 255, 252, 0.98), rgba(249, 243, 234, 0.98));
+  box-shadow: 0 32px 80px rgba(54, 80, 70, 0.18);
+  padding: 32px;
+}
+
+.party-modal--compact {
+  width: min(480px, 100%);
+}
+
+.party-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.party-form label {
+  display: grid;
+  gap: 7px;
+  text-align: left;
+  font-size: 0.92rem;
+  color: var(--ink-strong);
+}
+
 .info-modal-image {
   width: 100%;
   height: auto;
@@ -616,6 +860,12 @@
   margin: 12px 0 0;
   max-width: 50ch;
   color: rgba(71, 82, 77, 0.82);
+}
+
+.dress-code-accent {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.08em;
 }
 
 .rsvp-form {
@@ -760,8 +1010,12 @@
 
 .member-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
+}
+
+.member-stack {
+  display: grid;
+  gap: 10px;
 }
 
 .member-card {
@@ -799,25 +1053,22 @@
   box-shadow: 0 12px 24px rgba(127, 187, 166, 0.08);
 }
 
-.attendee-details-list {
-  display: grid;
-  gap: 14px;
-  margin-top: 18px;
-}
-
 .attendee-details-card {
   border-radius: 20px;
   border: 1px solid rgba(127, 187, 166, 0.14);
   background: rgba(255, 255, 255, 0.88);
-  padding: 18px;
+  padding: 0;
+  overflow: hidden;
 }
 
 .attendee-details-heading {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
   gap: 12px;
-  align-items: center;
-  margin-bottom: 14px;
+  align-items: start;
+  padding: 18px;
+  cursor: pointer;
+  list-style: none;
 }
 
 .attendee-details-heading strong {
@@ -825,20 +1076,56 @@
   margin-top: 2px;
 }
 
-.primary-contact-toggle {
+.attendee-details-heading::-webkit-details-marker {
+  display: none;
+}
+
+.attendee-details-body {
+  display: grid;
+  gap: 16px;
+  padding: 0 18px 18px;
+}
+
+.attendee-details-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 187, 166, 0.18);
+  background: rgba(245, 252, 248, 0.9);
+  color: var(--mint-700);
+}
+
+.attendee-details-toggle::after {
+  content: '▾';
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.attendee-details-card[open] .attendee-details-toggle::after {
+  content: '▴';
+}
+
+.rsvp-form label.primary-contact-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(127, 187, 166, 0.16);
-  background: rgba(245, 252, 248, 0.88);
-  font-size: 0.88rem;
+  width: fit-content;
+  padding: 2px 0;
+  text-align: left;
+  font-size: 0.92rem;
+  color: var(--ink-strong);
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .primary-contact-toggle input {
   width: auto;
   margin: 0;
+  accent-color: var(--mint-700);
 }
 
 .attendee-details-grid {
@@ -960,7 +1247,8 @@
   .story-grid,
   .details-grid,
   .timeline-list,
-  .member-grid {
+  .party-grid,
+  .contact-grid {
     grid-template-columns: 1fr;
   }
 
@@ -993,7 +1281,13 @@
   .story-section,
   .details-section,
   .timeline-section,
-  .closing-section {
+  .closing-section,
+  .portraits-section,
+  .party-section,
+  .contact-section,
+  .attendance-info-section,
+  .invitees-section,
+  .venue-section {
     padding: 32px 18px;
   }
 
@@ -1009,11 +1303,14 @@
     padding: 24px 18px;
   }
 
+  .party-modal {
+    padding: 24px 18px;
+  }
+
   .lodging-grid {
     grid-template-columns: 1fr;
   }
 
-  .attendee-details-heading,
   .attendee-details-grid {
     grid-template-columns: 1fr;
   }
@@ -1029,5 +1326,36 @@
 
   .rsvp-form {
     grid-template-columns: 1fr;
+  }
+
+  .portrait-slide {
+    aspect-ratio: 3 / 5;
+  }
+
+  .portraits-carousel {
+    --portraits-visible: 1;
+  }
+
+  .portraits-viewport {
+    width: 100%;
+  }
+
+  .portrait-slide {
+    aspect-ratio: 3 / 4;
+    padding: 10px;
+  }
+
+  .portrait-arrow {
+    width: 42px;
+    height: 42px;
+    font-size: 1.8rem;
+  }
+
+  .portrait-arrow.is-left {
+    left: 10px;
+  }
+
+  .portrait-arrow.is-right {
+    right: 10px;
   }
 }
