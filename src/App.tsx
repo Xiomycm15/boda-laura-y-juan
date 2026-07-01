@@ -928,7 +928,7 @@ function App() {
         </section>
 
         <section className="invitees-section">
-          <p className="invitees-label">{activeInvitation.members.length === 1 ? 'Apreciado/a:' : 'Apreciados:'}</p>
+          <p className="invitees-label">{activeInvitation.members.length === 1 ? 'Querido/a:' : 'Queridos:'}</p>
           <h2 className="invitees-title">
             {isKnownInvitation ? activeInvitation.label : 'Tu invitación personalizada'}
           </h2>
