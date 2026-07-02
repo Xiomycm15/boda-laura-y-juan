@@ -44,6 +44,7 @@ type InvitationMember = {
   identityDocument: string
   phone: string
   email: string
+  hasAllergies: boolean
   allergies: string
   isPrimaryContact: boolean
 }
@@ -336,11 +337,12 @@ function createMembers(invitation: InvitationPreset): InvitationMember[] {
   return invitation.members.map((memberName, index) => ({
     id: `${invitation.code}-${index}`,
     name: memberName,
-    attending: true,
+    attending: false,
     fullName: memberName,
     identityDocument: '',
     phone: '',
     email: '',
+    hasAllergies: false,
     allergies: '',
     isPrimaryContact: index === 0,
   }))
@@ -479,7 +481,7 @@ function buildGroupSummary(formData: RsvpFormData, invitationCode: string, princ
   }
 
   if (formData.travelGroupMode === 'create') {
-    return `Crea grupo compartido: ${formData.groupName || 'Sin nombre aún'} | ID del grupo: ${generateGroupCode(invitationCode, formData.groupName)} | Responsable: ${formData.groupLeaderName || principalContactName || 'Pendiente'} | Invitaciones estimadas: ${formData.sharedInvitationsEstimate || 'Pendiente'}`
+    return `Crea grupo compartido: ${formData.groupName || 'Sin nombre aún'} | ID del grupo: ${generateGroupCode(invitationCode, formData.groupName)} | Responsable: ${formData.groupLeaderName || principalContactName || 'Pendiente'} | Personas dentro del grupo: ${formData.sharedInvitationsEstimate || 'Pendiente'}`
   }
 
   return `Se une a grupo existente: ${formData.groupName || 'Sin nombre aún'} | Líder del grupo: ${formData.groupLeaderName || 'Pendiente'}`
@@ -514,6 +516,11 @@ function App() {
   const isKnownInvitation = activeInvitation.code !== 'INV-DEFAULT'
   const principalContact = attendingMembers.find((member) => member.isPrimaryContact) ?? attendingMembers[0] ?? null
   const principalContactName = principalContact?.fullName.trim() || activeInvitation.members[0] || ''
+  const minimumGroupCapacityOption = attendingCount < 6 ? attendingCount + 1 : 6
+  const groupCapacityOptions = Array.from(
+    { length: Math.max(1, 6 - minimumGroupCapacityOption + 1) },
+    (_, index) => String(Math.min(minimumGroupCapacityOption + index, 6)),
+  ).filter((value, index, array) => array.indexOf(value) === index)
   const estimatedGroupCapacity =
     formData.travelGroupMode === 'create' && Number(formData.sharedInvitationsEstimate) > 0
       ? Number(formData.sharedInvitationsEstimate)
@@ -861,6 +868,20 @@ function App() {
     )
   }
 
+  function handleMemberAllergyToggle(memberId: string) {
+    setFamilyMembers((current) =>
+      current.map((member) =>
+        member.id === memberId
+          ? {
+              ...member,
+              hasAllergies: !member.hasAllergies,
+              allergies: member.hasAllergies ? '' : member.allergies,
+            }
+          : member,
+      ),
+    )
+  }
+
   function handlePrimaryContactChange(memberId: string) {
     setFamilyMembers((current) =>
       current.map((member) => ({
@@ -890,13 +911,14 @@ function App() {
         !member.fullName.trim() ||
         !member.identityDocument.trim() ||
         !member.phone.trim() ||
-        !member.email.trim() ||
-        !member.allergies.trim(),
+        (member.hasAllergies && !member.allergies.trim()),
     )
 
     if (incompleteAttendee) {
       setSubmitState('error')
-      setFeedbackMessage(`Completa todos los datos de ${incompleteAttendee.name}, incluida la sección de alergias.`)
+      setFeedbackMessage(
+        `Completa los campos obligatorios de ${incompleteAttendee.name}: nombre completo, ID, teléfono${incompleteAttendee.hasAllergies ? ' y detalle de alergias' : ''}.`,
+      )
       return
     }
 
@@ -978,7 +1000,7 @@ function App() {
     const attendingMembersDetails = attendingMembers
       .map(
         (member) =>
-          `${member.fullName.trim()}${member.isPrimaryContact ? ' (contacto principal)' : ''} | ID: ${member.identityDocument.trim()} | Tel: ${member.phone.trim()} | Correo: ${member.email.trim()} | Alergias: ${member.allergies.trim()}`,
+          `${member.fullName.trim()}${member.isPrimaryContact ? ' (contacto principal)' : ''} | ID: ${member.identityDocument.trim()} | Tel: ${member.phone.trim()} | Correo: ${member.email.trim() || 'No registra'} | Alergias: ${member.hasAllergies ? member.allergies.trim() : 'No reporta'}`,
       )
       .join(' || ')
 
@@ -1027,12 +1049,15 @@ function App() {
       boarding_point: requiresOwnLodgingDetails
         ? formData.boardingPoint.trim() || null
         : selectedGroupLodgingDetails?.boardingPoint || null,
-      allergies: attendingMembers.map((member) => `${member.fullName.trim()}: ${member.allergies.trim()}`).join(' | ') || null,
+      allergies:
+        attendingMembers
+          .map((member) => `${member.fullName.trim()}: ${member.hasAllergies ? member.allergies.trim() : 'No reporta'}`)
+          .join(' | ') || null,
       notes:
         [
           formData.notes.trim(),
           formData.travelGroupMode === 'create' && formData.sharedInvitationsEstimate
-            ? `Invitaciones estimadas dentro del grupo: ${formData.sharedInvitationsEstimate}`
+            ? `Personas dentro del grupo: ${formData.sharedInvitationsEstimate}`
             : '',
         ]
           .filter(Boolean)
@@ -1330,11 +1355,56 @@ function App() {
             </button>
             <p className="eyebrow">Confirmación</p>
             <h2 id="rsvp-title">{activeInvitation.label}</h2>
-            <p className="modal-copy">
-              Confirma quiénes asistirán y, si aplica, completa los datos del hospedaje.
-            </p>
 
             <form className="rsvp-form" onSubmit={handleSubmit}>
+              <div className="full-span form-section-card is-soft">
+                <article className="lodging-banner">
+                  <p className="lodging-banner-copy">
+                    La siguiente información corresponde al precio final que se mostrará más adelante. Te recomendamos
+                    revisarla antes de confirmar tu reserva, ya que incluye las condiciones, formas de pago y otros
+                    detalles importantes.
+                  </p>
+                  <div className="lodging-cards-grid">
+                    <article className="lodging-detail-card">
+                      <span className="meta-label">Que incluye este plan:</span>
+                      <ul className="lodging-includes-list">
+                        <li>Hospedaje en Hotel Isla Múcura</li>
+                        <li>Alimentación desayuno -almuerzo-cena (buffet o platos a la carta)</li>
+                        <li>Transporte desde Cartagena a la Isla en lancha (Ida y vuelta)</li>
+                      </ul>
+                    </article>
+
+                    <article className="lodging-detail-card">
+                      <span className="meta-label">Que no incluye este plan:</span>
+                      <ul className="lodging-includes-list">
+                        <li>Transporte desde tu ciudad a Cartagena</li>
+                        <li>Gastos personales y consumos adicionales</li>
+                      </ul>
+                    </article>
+
+                    <article className="lodging-detail-card">
+                      <span className="meta-label">Plan de pagos:</span>
+                      <ul className="lodging-includes-list">
+                        <li>30% hasta el 1 de Octubre de 2026.</li>
+                        <li>30% hasta el 22 de Diciembre de 2026.</li>
+                        <li>40% hasta el 1 de Abril de 2026.</li>
+                      </ul>
+                    </article>
+
+                    <article className="lodging-detail-card">
+                      <span className="meta-label">Importante:</span>
+                      <p className="lodging-note">
+                        Una vez realizado un abono, el hotel no realiza devoluciones.
+                      </p>
+                      <p className="lodging-note">
+                        Tienes tiempo de confirmar o editar tu reserva hasta el{' '}
+                        <strong className="lodging-deadline">1 de Agosto de 2026</strong>.
+                      </p>
+                    </article>
+                  </div>
+                </article>
+              </div>
+
               <div className="full-span form-section-card">
                 <div className="flow-card-heading">
                   <span className="meta-label">Miembros de esta invitación</span>
@@ -1343,17 +1413,18 @@ function App() {
                 <div className="member-grid">
                   {familyMembers.map((member) => (
                     <div className="member-stack" key={member.id}>
-                      <label className={`member-card ${member.attending ? 'is-attending' : ''}`}>
-                        <input
-                          checked={member.attending}
-                          onChange={() => handleMemberAttendanceChange(member.id)}
-                          type="checkbox"
-                        />
-                        <div>
-                          <strong>{member.name}</strong>
-                          <p>{member.attending ? 'Asiste a la boda' : 'No asistirá'}</p>
-                        </div>
-                      </label>
+                      <div className={`member-card ${member.attending ? 'is-attending' : ''}`}>
+                        <button
+                          aria-label={member.attending ? `Quitar a ${member.name}` : `Marcar a ${member.name}`}
+                          aria-pressed={member.attending}
+                          className={`member-toggle ${member.attending ? 'is-active' : ''}`}
+                          onClick={() => handleMemberAttendanceChange(member.id)}
+                          type="button"
+                        >
+                          <span className="member-toggle-thumb" />
+                        </button>
+                        <span className="member-card-name">{member.name}</span>
+                      </div>
                       {member.attending ? (
                         <details className="attendee-details-card" open>
                           <summary className="attendee-details-heading">
@@ -1372,7 +1443,15 @@ function App() {
                             </label>
                             <div className="attendee-details-grid">
                               <label>
-                                ID o Pasaporte
+                                Nombre completo *
+                                <input
+                                  onChange={(event) => handleMemberFieldChange(member.id, 'fullName', event.target.value)}
+                                  required
+                                  value={member.fullName}
+                                />
+                              </label>
+                              <label>
+                                ID o Pasaporte *
                                 <input
                                   onChange={(event) =>
                                     handleMemberFieldChange(member.id, 'identityDocument', event.target.value)
@@ -1382,7 +1461,7 @@ function App() {
                                 />
                               </label>
                               <label>
-                                Teléfono
+                                Teléfono *
                                 <input
                                   onChange={(event) => handleMemberFieldChange(member.id, 'phone', event.target.value)}
                                   required
@@ -1393,22 +1472,35 @@ function App() {
                                 Correo
                                 <input
                                   onChange={(event) => handleMemberFieldChange(member.id, 'email', event.target.value)}
-                                  required
                                   type="email"
                                   value={member.email}
                                 />
                               </label>
-                              <label className="full-span">
-                                Alergias
-                                <textarea
-                                  onChange={(event) =>
-                                    handleMemberFieldChange(member.id, 'allergies', event.target.value)
-                                  }
-                                  required
-                                  rows={3}
-                                  value={member.allergies}
-                                />
-                              </label>
+                              <div className="full-span allergy-toggle-row">
+                                <span>Alergias</span>
+                                <button
+                                  aria-label={member.hasAllergies ? `Indicar que ${member.name} sí tiene alergias` : `Indicar que ${member.name} no tiene alergias`}
+                                  aria-pressed={member.hasAllergies}
+                                  className={`member-toggle ${member.hasAllergies ? 'is-active' : ''}`}
+                                  onClick={() => handleMemberAllergyToggle(member.id)}
+                                  type="button"
+                                >
+                                  <span className="member-toggle-thumb" />
+                                </button>
+                              </div>
+                              {member.hasAllergies ? (
+                                <label className="full-span">
+                                  ¿Cuáles? *
+                                  <textarea
+                                    onChange={(event) =>
+                                      handleMemberFieldChange(member.id, 'allergies', event.target.value)
+                                    }
+                                    required
+                                    rows={3}
+                                    value={member.allergies}
+                                  />
+                                </label>
+                              ) : null}
                             </div>
                           </div>
                         </details>
@@ -1432,14 +1524,16 @@ function App() {
                     <div className="flow-options">
                       {travelGroupOptions.map((option) => (
                         <label className="flow-option" key={option.value}>
-                          <input
-                            checked={formData.travelGroupMode === option.value}
-                            name="travelGroupMode"
-                            onChange={handleInputChange}
-                            type="radio"
-                            value={option.value}
-                          />
-                          <div>
+                          <span className="flow-option-control">
+                            <input
+                              checked={formData.travelGroupMode === option.value}
+                              name="travelGroupMode"
+                              onChange={handleInputChange}
+                              type="radio"
+                              value={option.value}
+                            />
+                          </span>
+                          <div className="flow-option-copy">
                             <strong>{option.title}</strong>
                             <p>{option.description}</p>
                           </div>
@@ -1448,42 +1542,19 @@ function App() {
                     </div>
                   </div>
 
-                  {formData.travelGroupMode !== 'individual' ? (
+                  {formData.travelGroupMode === 'join' ? (
                     <div className="full-span lodging-grid">
                       <label>
-                        {formData.travelGroupMode === 'join' ? 'Grupo disponible' : 'Nombre del grupo'}
-                        {formData.travelGroupMode === 'join' ? (
-                          <select name="groupName" onChange={handleInputChange} required value={formData.groupName}>
-                            <option value="">Selecciona un grupo creado</option>
-                            {existingGroups.map((group) => (
-                              <option key={group.id} value={group.id}>
-                                {group.label} · {group.id}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            name="groupName"
-                            onChange={handleInputChange}
-                            placeholder="Ej: Grupo primos Laura"
-                            required
-                            value={formData.groupName}
-                          />
-                        )}
+                        Grupo disponible
+                        <select name="groupName" onChange={handleInputChange} required value={formData.groupName}>
+                          <option value="">Selecciona un grupo creado</option>
+                          {existingGroups.map((group) => (
+                            <option key={group.id} value={group.id}>
+                              {group.label} · {group.id}
+                            </option>
+                          ))}
+                        </select>
                       </label>
-
-                      {formData.travelGroupMode !== 'join' ? (
-                        <label>
-                          Responsable del grupo
-                          <input
-                            name="groupLeaderName"
-                            onChange={handleInputChange}
-                            placeholder="Nombre del líder del grupo"
-                            required
-                            value={formData.groupLeaderName}
-                          />
-                        </label>
-                      ) : null}
                     </div>
                   ) : null}
 
@@ -1494,34 +1565,177 @@ function App() {
                   ) : null}
 
                   {formData.travelGroupMode === 'create' ? (
-                    <label className="group-estimate-field">
-                      Invitaciones estimadas dentro del grupo
-                      <input
-                        min="1"
-                        name="sharedInvitationsEstimate"
-                        onChange={handleInputChange}
-                        placeholder="Ej: 3"
-                        required
-                        type="number"
-                        value={formData.sharedInvitationsEstimate}
-                      />
-                    </label>
+                    <div className="full-span accordion-flow">
+                      <details className="accordion-card" open>
+                        <summary className="accordion-card-summary">
+                          <span className="meta-label">Datos del grupo</span>
+                        </summary>
+                        <div className="accordion-card-body">
+                          <div className="lodging-grid">
+                            <label>
+                              Nombre del grupo
+                              <input
+                                name="groupName"
+                                onChange={handleInputChange}
+                                placeholder="Ej: Grupo Amigos Laura"
+                                required
+                                value={formData.groupName}
+                              />
+                            </label>
+
+                            <label>
+                              Responsable del grupo
+                              <input
+                                name="groupLeaderName"
+                                onChange={handleInputChange}
+                                placeholder="Nombre del líder del grupo"
+                                required
+                                value={formData.groupLeaderName}
+                              />
+                            </label>
+                          </div>
+
+                          <label className="group-estimate-field">
+                            Personas dentro del grupo
+                            <select
+                              name="sharedInvitationsEstimate"
+                              onChange={handleInputChange}
+                              required
+                              value={formData.sharedInvitationsEstimate}
+                            >
+                              <option value="">Selecciona el total de personas</option>
+                              {groupCapacityOptions.map((option) => (
+                                <option key={option} value={option}>
+                                  {option} persona{option === '1' ? '' : 's'}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      </details>
+
+                      <details className="accordion-card" open>
+                        <summary className="accordion-card-summary">
+                          <span className="meta-label">Hospedaje del grupo</span>
+                          <strong>Selecciona habitación, noches y fechas</strong>
+                        </summary>
+                        <div className="accordion-card-body">
+                          <div className="form-section-card">
+                            <div className="form-section-heading">
+                              <span className="meta-label">Detalles del hospedaje</span>
+                              <strong>Completa los datos del viaje</strong>
+                            </div>
+
+                            {isAvailabilityLoading ? (
+                              <p className="availability-note">Estamos validando las habitaciones disponibles...</p>
+                            ) : null}
+
+                            {availabilityError ? <p className="availability-note is-error">{availabilityError}</p> : null}
+
+                            {availableLodgingOptions.length === 0 ? (
+                              <p className="availability-note is-empty">
+                                No hay habitaciones disponibles para {requiredLodgingCapacity} invitado(s) en este momento.
+                              </p>
+                            ) : null}
+
+                            <div className="lodging-grid">
+                              <label>
+                                Habitación
+                                <select name="room" onChange={handleInputChange} required value={formData.room}>
+                                  <option value="">Selecciona una habitación</option>
+                                  {availableLodgingOptions.map((option) => {
+                                    const remainingRooms = option.totalRooms - (reservedRoomsByLabel[option.label] ?? 0)
+
+                                    return (
+                                      <option key={option.id} value={option.label}>
+                                        {option.label} · Hasta {option.capacity} personas · {remainingRooms} disponible(s)
+                                      </option>
+                                    )
+                                  })}
+                                </select>
+                              </label>
+
+                              <label>
+                                Número de noches
+                                <select
+                                  name="numberOfNights"
+                                  onChange={handleInputChange}
+                                  required
+                                  value={formData.numberOfNights}
+                                >
+                                  <option value="">Selecciona las noches</option>
+                                  <option value="1">1 noche</option>
+                                  <option value="2">2 noches</option>
+                                  <option value="3">3 noches</option>
+                                </select>
+                              </label>
+
+                              <label>
+                                Fecha de ingreso
+                                <input
+                                  max="2027-06-30"
+                                  min="2027-05-01"
+                                  name="checkInDate"
+                                  onChange={handleInputChange}
+                                  required
+                                  type="date"
+                                  value={formData.checkInDate}
+                                />
+                              </label>
+
+                              <label>
+                                Fecha de salida
+                                <input
+                                  max="2027-06-30"
+                                  min="2027-05-01"
+                                  name="checkOutDate"
+                                  onChange={handleInputChange}
+                                  required
+                                  type="date"
+                                  value={formData.checkOutDate}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </details>
+
+                      <details className="accordion-card" open>
+                        <summary className="accordion-card-summary">
+                          <span className="meta-label">Resumen final</span>
+                          <strong>Revisa el valor estimado del grupo</strong>
+                        </summary>
+                        <div className="accordion-card-body">
+                          {selectedRoomOption && selectedNightCount && selectedPricePerPerson && selectedStayTotal ? (
+                            <article className="lodging-price-card">
+                              <span className="meta-label">Resumen de precio</span>
+                              <strong>{selectedRoomOption.label}</strong>
+                              <p>
+                                Capacidad máxima: {selectedRoomOption.capacity} persona(s) · Capacidad requerida:{' '}
+                                {requiredLodgingCapacity}
+                              </p>
+                              <p>
+                                Valor por persona para {selectedNightCount} noche(s):{' '}
+                                {formatCurrency(selectedPricePerPerson)}
+                              </p>
+                              <p>Total estimado del grupo: {formatCurrency(selectedStayTotal)}</p>
+                            </article>
+                          ) : (
+                            <p className="availability-note">
+                              Completa los datos del hospedaje para ver aquí el resumen final del grupo.
+                            </p>
+                          )}
+                        </div>
+                      </details>
+                    </div>
                   ) : null}
 
-                  {formData.travelGroupMode !== 'join' ? (
+                  {formData.travelGroupMode === 'individual' ? (
                     <div className="full-span form-section-card">
                     <div className="form-section-heading">
                       <span className="meta-label">Detalles del hospedaje</span>
                       <strong>Completa los datos del viaje</strong>
                     </div>
-                    <article className="lodging-banner">
-                      <span className="meta-label">Este precio incluye</span>
-                      <strong>Hospedaje en Hotel Isla Múcura</strong>
-                      <ul className="lodging-includes-list">
-                        <li>Alimentación desayuno -almuerzo-cena</li>
-                        <li>Transporte</li>
-                      </ul>
-                    </article>
 
                     {isAvailabilityLoading ? (
                       <p className="availability-note">Estamos validando las habitaciones disponibles...</p>
@@ -1595,26 +1809,6 @@ function App() {
                           required
                           type="date"
                           value={formData.checkOutDate}
-                        />
-                      </label>
-
-                      <label>
-                        Hora llegada
-                        <input
-                          name="arrivalTime"
-                          onChange={handleInputChange}
-                          type="time"
-                          value={formData.arrivalTime}
-                        />
-                      </label>
-
-                      <label>
-                        Hora salida
-                        <input
-                          name="departureTime"
-                          onChange={handleInputChange}
-                          type="time"
-                          value={formData.departureTime}
                         />
                       </label>
 
