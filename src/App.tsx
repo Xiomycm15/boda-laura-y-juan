@@ -122,6 +122,15 @@ type AdminReservationRecord = {
   created_at: string | null
 }
 
+type AdminReservationSummary = {
+  id: string
+  reservation: AdminReservationRecord
+  attendees: InvitationMember[]
+  confirmedPeople: number
+  linkedInvitations: number
+  invitationCodes: string[]
+}
+
 const LOCAL_GROUPS_STORAGE_KEY = 'laura-juan-created-groups'
 const ADMIN_SESSION_STORAGE_KEY = 'laura-juan-admin-access'
 const adminAccessKey = import.meta.env.VITE_NOVIOS_PANEL_KEY ?? 'laura-juan-2027'
@@ -623,6 +632,29 @@ function buildGroupSummary(
   return `Se une a grupo existente: ${selectedExistingGroup?.label || 'Sin nombre aún'} | ID del grupo: ${formData.groupName || 'Pendiente'} | Líder del grupo: ${formData.groupLeaderName || 'Pendiente'}`
 }
 
+function countsAsRoomReservation(
+  travelGroupMode: TravelGroupMode | null | undefined,
+  room: string | null | undefined,
+) {
+  return Boolean(room?.trim()) && travelGroupMode !== 'join'
+}
+
+function getAdminReservationKey(reservation: AdminReservationRecord) {
+  if (reservation.travel_group_mode === 'create' && reservation.group_id?.trim()) {
+    return `group:${reservation.group_id.trim()}`
+  }
+
+  if (reservation.travel_group_mode === 'join' && reservation.group_id?.trim()) {
+    return `group:${reservation.group_id.trim()}`
+  }
+
+  if (reservation.invitation_code?.trim()) {
+    return `invitation:${reservation.invitation_code.trim()}`
+  }
+
+  return `reservation:${reservation.id}`
+}
+
 function AdminPanel() {
   const [accessCode, setAccessCode] = useState('')
   const [isAuthorized, setIsAuthorized] = useState(() => {
@@ -691,14 +723,80 @@ function AdminPanel() {
     }
   }, [isAuthorized])
 
-  const filteredReservations = reservations.filter((reservation) => {
+  const reservationSummaries = Array.from(
+    reservations.reduce((map, reservation) => {
+      if (!countsAsRoomReservation(reservation.travel_group_mode, reservation.room) && reservation.travel_group_mode !== 'join') {
+        return map
+      }
+
+      const key = getAdminReservationKey(reservation)
+      const current = map.get(key)
+      const nextAttendees = resolveStoredAttendees(reservation.attendees_json, {
+        reservationId: reservation.id,
+        fullName: reservation.full_name,
+        identityDocument: reservation.identity_document,
+        phone: reservation.phone,
+        allergies: reservation.allergies,
+      })
+
+      if (!current) {
+        map.set(key, {
+          id: key,
+          reservation,
+          attendees: nextAttendees,
+          confirmedPeople: reservation.number_of_people ?? nextAttendees.length,
+          linkedInvitations: 1,
+          invitationCodes: reservation.invitation_code ? [reservation.invitation_code] : [],
+        })
+        return map
+      }
+
+      const attendeeMap = new Map<string, InvitationMember>()
+
+      for (const attendee of current.attendees) {
+        attendeeMap.set(attendee.id, attendee)
+      }
+
+      for (const attendee of nextAttendees) {
+        attendeeMap.set(attendee.id, attendee)
+      }
+
+      const currentCreatedAt = current.reservation.created_at ? new Date(current.reservation.created_at).getTime() : 0
+      const nextCreatedAt = reservation.created_at ? new Date(reservation.created_at).getTime() : 0
+      const baseReservation =
+        countsAsRoomReservation(reservation.travel_group_mode, reservation.room) ||
+        nextCreatedAt > currentCreatedAt
+          ? reservation
+          : current.reservation
+
+      map.set(key, {
+        id: key,
+        reservation: baseReservation,
+        attendees: Array.from(attendeeMap.values()),
+        confirmedPeople: current.confirmedPeople + (reservation.number_of_people ?? nextAttendees.length),
+        linkedInvitations: current.linkedInvitations + 1,
+        invitationCodes: Array.from(
+          new Set([
+            ...current.invitationCodes,
+            ...(reservation.invitation_code ? [reservation.invitation_code] : []),
+          ]),
+        ),
+      })
+
+      return map
+    }, new Map<string, AdminReservationSummary>()).values(),
+  )
+
+  const filteredReservations = reservationSummaries.filter((summary) => {
+    const { reservation } = summary
     const searchableText = [
       reservation.invitation_code,
       reservation.invitation_label,
       reservation.full_name,
       reservation.group_label,
       reservation.room,
-      reservation.attendees_json?.map((guest) => guest.fullName || guest.name).join(' '),
+      summary.invitationCodes.join(' '),
+      summary.attendees.map((guest) => guest.fullName || guest.name).join(' '),
     ]
       .filter(Boolean)
       .join(' ')
@@ -712,6 +810,7 @@ function AdminPanel() {
     filteredReservations[0] ??
     null
 
+  const actualReservations = reservationSummaries.length
   const confirmedPeople = reservations.reduce((total, reservation) => total + (reservation.number_of_people ?? 0), 0)
   const createdGroups = reservations.filter((reservation) => reservation.travel_group_mode === 'create').length
   const joiningGroups = reservations.filter((reservation) => reservation.travel_group_mode === 'join').length
@@ -773,7 +872,7 @@ function AdminPanel() {
           <p className="eyebrow">Panel privado</p>
           <h1>Reservas en tiempo real</h1>
           <p className="admin-subcopy">
-            Aquí pueden ver quién ya confirmó, cómo se está organizando cada invitación y los cambios más recientes.
+            Aquí pueden ver las reservas reales, quiénes están dentro de cada una y los cambios más recientes.
           </p>
         </div>
         <div className="admin-hero-actions">
@@ -787,8 +886,8 @@ function AdminPanel() {
       <section className="admin-stats-grid">
         <article className="admin-stat-card">
           <span className="meta-label">Reservas</span>
-          <strong>{reservations.length}</strong>
-          <p>invitaciones con información guardada</p>
+          <strong>{actualReservations}</strong>
+          <p>habitaciones apartadas por invitaciones anfitrionas o individuales</p>
         </article>
         <article className="admin-stat-card">
           <span className="meta-label">Personas confirmadas</span>
@@ -828,10 +927,17 @@ function AdminPanel() {
                 onClick={() => setSelectedReservationId(reservation.id)}
                 type="button"
               >
-                <span className="meta-label">{reservation.invitation_code ?? 'Sin código'}</span>
-                <strong>{reservation.invitation_label ?? reservation.full_name ?? 'Reserva sin nombre'}</strong>
+                <span className="meta-label">
+                  {reservation.reservation.group_id ?? reservation.reservation.invitation_code ?? 'Sin código'}
+                </span>
+                <strong>
+                  {reservation.reservation.group_label ??
+                    reservation.reservation.invitation_label ??
+                    reservation.reservation.full_name ??
+                    'Reserva sin nombre'}
+                </strong>
                 <span>
-                  {reservation.number_of_people ?? 0} persona(s) · {reservation.room ?? 'Sin habitación'}
+                  {reservation.confirmedPeople} persona(s) · {reservation.reservation.room ?? 'Sin habitación'}
                 </span>
               </button>
             ))}
@@ -847,17 +953,23 @@ function AdminPanel() {
               <div className="admin-detail-head">
                 <div>
                   <p className="eyebrow">Detalle</p>
-                  <h2>{selectedReservation.invitation_label ?? 'Reserva sin etiqueta'}</h2>
+                  <h2>
+                    {selectedReservation.reservation.group_label ??
+                      selectedReservation.reservation.invitation_label ??
+                      'Reserva sin etiqueta'}
+                  </h2>
                   <p className="admin-subcopy">
-                    Código {selectedReservation.invitation_code ?? 'Sin código'} · Guardada el{' '}
-                    {formatAdminDateTime(selectedReservation.created_at)}
+                    Código {selectedReservation.reservation.group_id ??
+                      selectedReservation.reservation.invitation_code ??
+                      'Sin código'}{' '}
+                    · Guardada el {formatAdminDateTime(selectedReservation.reservation.created_at)}
                   </p>
                 </div>
                 <span className="admin-mode-pill">
-                  {selectedReservation.travel_group_mode === 'create'
+                  {selectedReservation.reservation.travel_group_mode === 'create'
                     ? 'Crea grupo'
-                    : selectedReservation.travel_group_mode === 'join'
-                      ? 'Se une a grupo'
+                    : selectedReservation.linkedInvitations > 1
+                      ? 'Reserva compartida'
                       : 'Reserva individual'}
                 </span>
               </div>
@@ -865,34 +977,34 @@ function AdminPanel() {
               <div className="admin-summary-grid">
                 <article className="admin-summary-card">
                   <span className="meta-label">Contacto principal</span>
-                  <strong>{selectedReservation.full_name ?? 'Sin nombre'}</strong>
-                  <p>{selectedReservation.phone ?? 'Sin teléfono'}</p>
-                  <p>ID: {selectedReservation.identity_document ?? 'Sin documento'}</p>
+                  <strong>{selectedReservation.reservation.full_name ?? 'Sin nombre'}</strong>
+                  <p>{selectedReservation.reservation.phone ?? 'Sin teléfono'}</p>
+                  <p>ID: {selectedReservation.reservation.identity_document ?? 'Sin documento'}</p>
                 </article>
                 <article className="admin-summary-card">
                   <span className="meta-label">Hospedaje</span>
-                  <strong>{selectedReservation.room ?? 'Sin habitación'}</strong>
-                  <p>{selectedReservation.number_of_nights ?? 0} noche(s)</p>
+                  <strong>{selectedReservation.reservation.room ?? 'Sin habitación'}</strong>
+                  <p>{selectedReservation.reservation.number_of_nights ?? 0} noche(s)</p>
                   <p>
-                    {formatAdminDate(selectedReservation.check_in_date)} al{' '}
-                    {formatAdminDate(selectedReservation.check_out_date)}
+                    {formatAdminDate(selectedReservation.reservation.check_in_date)} al{' '}
+                    {formatAdminDate(selectedReservation.reservation.check_out_date)}
                   </p>
                 </article>
                 <article className="admin-summary-card">
-                  <span className="meta-label">Grupo</span>
-                  <strong>{selectedReservation.group_label ?? 'Sin grupo compartido'}</strong>
-                  <p>ID grupo: {selectedReservation.group_id ?? 'No aplica'}</p>
-                  <p>Capacidad: {selectedReservation.group_capacity ?? 0}</p>
+                  <span className="meta-label">Reserva</span>
+                  <strong>{selectedReservation.confirmedPeople} persona(s)</strong>
+                  <p>Invitaciones dentro: {selectedReservation.linkedInvitations}</p>
+                  <p>Capacidad: {selectedReservation.reservation.group_capacity ?? selectedReservation.confirmedPeople}</p>
                 </article>
               </div>
 
               <div className="admin-attendees-card">
                 <div className="flow-card-heading">
                   <span className="meta-label">Asistentes</span>
-                  <strong>{selectedReservation.attendees_json?.length ?? 0} persona(s) registradas</strong>
+                  <strong>{selectedReservation.attendees.length} persona(s) registradas</strong>
                 </div>
                 <div className="admin-attendees-grid">
-                  {(selectedReservation.attendees_json ?? []).map((guest) => (
+                  {selectedReservation.attendees.map((guest) => (
                     <article className="admin-attendee-card" key={guest.id}>
                       <strong>
                         {guest.fullName || guest.name}
@@ -904,7 +1016,7 @@ function AdminPanel() {
                       <p>Alergias: {guest.hasAllergies ? guest.allergies || 'Sí, sin detalle' : 'No reporta'}</p>
                     </article>
                   ))}
-                  {!selectedReservation.attendees_json?.length ? (
+                  {!selectedReservation.attendees.length ? (
                     <p className="availability-note">Esta reserva todavía no tiene asistentes estructurados guardados.</p>
                   ) : null}
                 </div>
@@ -1116,7 +1228,7 @@ function App() {
         const rowPeopleCount =
           typeof row.number_of_people === 'number' && Number.isFinite(row.number_of_people) ? row.number_of_people : 0
 
-        if (roomLabel) {
+        if (countsAsRoomReservation(travelGroupMode as TravelGroupMode | null, roomLabel)) {
           nextReservedRoomsByLabel[roomLabel] = (nextReservedRoomsByLabel[roomLabel] ?? 0) + 1
         }
 
