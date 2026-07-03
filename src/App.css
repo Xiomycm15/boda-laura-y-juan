@@ -593,19 +593,6 @@
   width: 100%;
 }
 
-.decline-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 52px;
-  padding: 0 24px;
-  border-radius: 999px;
-  border: 1px solid rgba(196, 131, 131, 0.28);
-  background: rgba(255, 245, 245, 0.96);
-  color: #9b5d5d;
-  cursor: pointer;
-}
-
 .venue-section {
   text-align: center;
   border: 1px solid rgba(127, 187, 166, 0.18);
@@ -798,7 +785,20 @@
   background:
     linear-gradient(180deg, rgba(252, 255, 252, 0.98), rgba(249, 243, 234, 0.98));
   box-shadow: 0 32px 80px rgba(54, 80, 70, 0.18);
-  padding: 32px;
+  padding: 42px 40px 40px;
+}
+
+.info-modal .eyebrow {
+  margin-bottom: 18px;
+}
+
+.info-modal h2 {
+  margin: 0 0 22px;
+  line-height: 0.98;
+}
+
+.info-modal .lodging-banner {
+  margin-top: 12px;
 }
 
 .party-modal {
@@ -837,7 +837,7 @@
   width: 100%;
   height: auto;
   display: block;
-  margin-top: 20px;
+  margin-top: 34px;
   border-radius: 20px;
   border: 1px solid rgba(127, 187, 166, 0.18);
 }
@@ -857,9 +857,16 @@
 }
 
 .modal-copy {
-  margin: 12px 0 0;
+  margin: 30px 0 0;
   max-width: 50ch;
   color: rgba(71, 82, 77, 0.82);
+}
+
+.rsvp-intro-copy {
+  margin-top: 34px;
+  max-width: 58ch;
+  font-size: 1.02rem;
+  line-height: 1.6;
 }
 
 .dress-code-accent {
@@ -927,12 +934,14 @@
 }
 
 .lodging-banner-copy {
-  margin-bottom: 34px;
+  margin-bottom: 56px;
+  line-height: 1.5;
 }
 
 .lodging-cards-grid {
   display: grid;
-  gap: 14px;
+  margin-top: 26px;
+  gap: 28px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -940,30 +949,40 @@
   border-radius: 20px;
   border: 1px solid rgba(127, 187, 166, 0.14);
   background: rgba(255, 255, 255, 0.62);
-  padding: 18px;
+  padding: 28px 34px;
 }
 
 .lodging-detail-card .meta-label {
   display: block;
+  margin-bottom: 22px;
+  line-height: 1.35;
 }
 
 .lodging-includes-list {
-  margin: 10px 0 0;
-  padding-left: 18px;
+  margin: 0;
+  padding-left: 28px;
   color: var(--ink-strong);
+  line-height: 1.55;
 }
 
 .lodging-includes-list li + li {
-  margin-top: 6px;
+  margin-top: 18px;
 }
 
 .lodging-note {
-  margin: 10px 0 0;
+  margin: 0;
   color: var(--ink-strong);
+  line-height: 1.6;
+}
+
+.lodging-note + .lodging-note {
+  margin-top: 22px;
 }
 
 .lodging-deadline {
   font-size: 1.6em;
+  display: inline-block;
+  margin-top: 12px;
 }
 
 .lodging-banner.is-muted {
@@ -1317,6 +1336,7 @@
 .lodging-price-card {
   display: grid;
   gap: 6px;
+  margin-top: 18px;
   border: 1px solid rgba(127, 187, 166, 0.16);
   background: linear-gradient(180deg, rgba(241, 250, 244, 0.92), rgba(255, 251, 245, 0.92));
 }
@@ -1433,7 +1453,7 @@
   }
 
   .info-modal {
-    padding: 24px 18px;
+    padding: 28px 18px 24px;
   }
 
   .party-modal {

@@ -3,8 +3,8 @@ create extension if not exists pgcrypto;
 create table if not exists public.wedding_rsvps (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
-  identity_document text not null,
-  phone text not null,
+  identity_document text,
+  phone text,
   invitation_code text,
   invitation_label text,
   description text,
@@ -14,10 +14,10 @@ create table if not exists public.wedding_rsvps (
   group_leader_name text,
   group_capacity integer,
   room text,
-  number_of_people integer not null check (number_of_people > 0),
-  number_of_nights integer not null check (number_of_nights > 0),
-  check_in_date date not null,
-  check_out_date date not null,
+  number_of_people integer not null check (number_of_people >= 0),
+  number_of_nights integer,
+  check_in_date date,
+  check_out_date date,
   arrival_time time,
   departure_time time,
   boarding_point text,
@@ -161,6 +161,13 @@ alter table public.wedding_rsvps add column if not exists group_label text;
 alter table public.wedding_rsvps add column if not exists group_leader_name text;
 alter table public.wedding_rsvps add column if not exists group_capacity integer;
 alter table public.wedding_rsvps add column if not exists attendees_json jsonb;
+alter table public.wedding_rsvps alter column identity_document drop not null;
+alter table public.wedding_rsvps alter column phone drop not null;
+alter table public.wedding_rsvps alter column number_of_nights drop not null;
+alter table public.wedding_rsvps alter column check_in_date drop not null;
+alter table public.wedding_rsvps alter column check_out_date drop not null;
+alter table public.wedding_rsvps drop constraint if exists wedding_rsvps_number_of_people_check;
+alter table public.wedding_rsvps add constraint wedding_rsvps_number_of_people_check check (number_of_people >= 0);
 
 create or replace function public.get_wedding_rsvp_by_invitation(invitation_code_param text)
 returns table (
@@ -279,6 +286,7 @@ grant execute on function public.get_wedding_admin_reservations() to anon, authe
 
 create or replace function public.get_wedding_availability()
 returns table (
+  invitation_code text,
   room text,
   number_of_people integer,
   number_of_nights integer,
@@ -298,6 +306,7 @@ security definer
 set search_path = public
 as $$
   select
+    invitation_code,
     room,
     number_of_people,
     number_of_nights,

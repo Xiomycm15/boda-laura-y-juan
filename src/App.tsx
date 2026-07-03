@@ -17,6 +17,10 @@ import retratos11 from './assets/gallery/retratos-11.jpeg'
 import retratos12 from './assets/gallery/retratos-12.jpeg'
 import retratos13 from './assets/gallery/retratos-13.jpeg'
 import retratos14 from './assets/gallery/retratos-14.jpeg'
+import retratos15 from './assets/gallery/retratos-15.jpeg'
+import retratos16 from './assets/gallery/retratos-16.jpeg'
+import retratos17 from './assets/gallery/retratos-17.jpeg'
+import retratos18 from './assets/gallery/retratos-18.jpeg'
 
 type Countdown = {
   days: number
@@ -129,6 +133,21 @@ type AdminReservationSummary = {
   confirmedPeople: number
   linkedInvitations: number
   invitationCodes: string[]
+  primaryContactAttendeeId: string | null
+}
+
+type SavedReservationSnapshot = {
+  invitationCode: string | null
+  room: string | null
+  travelGroupMode: TravelGroupMode | null
+}
+
+type AvailabilityEntry = {
+  invitationCode: string | null
+  room: string
+  checkInDate: string
+  checkOutDate: string
+  travelGroupMode: TravelGroupMode | null
 }
 
 const LOCAL_GROUPS_STORAGE_KEY = 'laura-juan-created-groups'
@@ -289,7 +308,7 @@ function sanitizeStoredAttendees(value: unknown): InvitationMember[] {
       return {
         id: typeof candidate.id === 'string' && candidate.id.trim() ? candidate.id : `saved-${index}`,
         name: typeof candidate.name === 'string' ? candidate.name : '',
-        attending: true,
+        attending: typeof candidate.attending === 'boolean' ? candidate.attending : true,
         fullName: typeof candidate.fullName === 'string' ? candidate.fullName : typeof candidate.name === 'string' ? candidate.name : '',
         identityDocument: typeof candidate.identityDocument === 'string' ? candidate.identityDocument : '',
         phone: typeof candidate.phone === 'string' ? candidate.phone : '',
@@ -346,13 +365,17 @@ function resolveStoredAttendees(
 const lovePortraits = [
   { src: retratos01, alt: 'Laura y Juan sonriéndose frente al mar al atardecer' },
   { src: retratos02, alt: 'Laura y Juan abrazados junto al mar en Isla Múcura' },
+  { src: retratos15, alt: 'Laura y Juan besándose frente a unos jardines y un lago bajo el sol' },
   { src: retratos03, alt: 'Laura y Juan abrazados frente al mar con el sol cayendo' },
   { src: retratos04, alt: 'Laura y Juan tomados de la mano con vista panorámica urbana' },
+  { src: retratos17, alt: 'Laura y Juan abrazados de espaldas frente a un lago rodeado de naturaleza' },
   { src: retratos05, alt: 'Laura y Juan riendo juntos en una noche especial' },
   { src: retratos06, alt: 'Laura y Juan caminando de la mano por la playa' },
   { src: retratos07, alt: 'Laura y Juan besándose frente a la Torre Eiffel' },
+  { src: retratos18, alt: 'Laura y Juan abrazados en una exhibición con un dragón blanco gigante' },
   { src: retratos08, alt: 'Laura y Juan compartiendo una tarde juntos en una banca' },
   { src: retratos09, alt: 'Laura y Juan abrazados en el mar cristalino' },
+  { src: retratos16, alt: 'Laura y Juan sonriendo juntos en un taller de cerámica' },
   { src: retratos10, alt: 'Laura y Juan abrazados en un muelle frente al mar' },
   { src: retratos11, alt: 'Laura y Juan buceando tomados de la mano' },
   { src: retratos12, alt: 'Laura y Juan abrazados con vista al mar desde una montaña' },
@@ -639,6 +662,49 @@ function countsAsRoomReservation(
   return Boolean(room?.trim()) && travelGroupMode !== 'join'
 }
 
+function getAdjustedReservedRoomCount(
+  roomLabel: string,
+  availabilityEntries: AvailabilityEntry[],
+  selectedCheckInDate: string,
+  selectedCheckOutDate: string,
+  currentInvitationCode: string | null,
+) {
+  const normalizedRoomLabel = roomLabel.trim()
+  const hasSelectedDates = Boolean(selectedCheckInDate && selectedCheckOutDate)
+
+  return availabilityEntries.reduce((total, entry) => {
+    if (entry.room !== normalizedRoomLabel) {
+      return total
+    }
+
+    if (currentInvitationCode && entry.invitationCode === currentInvitationCode) {
+      return total
+    }
+
+    if (!hasSelectedDates) {
+      return total + 1
+    }
+
+    const selectedStart = Date.parse(`${selectedCheckInDate}T00:00:00`)
+    const selectedEnd = Date.parse(`${selectedCheckOutDate}T00:00:00`)
+    const reservedStart = Date.parse(`${entry.checkInDate}T00:00:00`)
+    const reservedEnd = Date.parse(`${entry.checkOutDate}T00:00:00`)
+
+    if (
+      Number.isNaN(selectedStart) ||
+      Number.isNaN(selectedEnd) ||
+      Number.isNaN(reservedStart) ||
+      Number.isNaN(reservedEnd)
+    ) {
+      return total + 1
+    }
+
+    const overlaps = selectedStart < reservedEnd && reservedStart < selectedEnd
+
+    return overlaps ? total + 1 : total
+  }, 0)
+}
+
 function getAdminReservationKey(reservation: AdminReservationRecord) {
   if (reservation.travel_group_mode === 'create' && reservation.group_id?.trim()) {
     return `group:${reservation.group_id.trim()}`
@@ -725,7 +791,10 @@ function AdminPanel() {
 
   const reservationSummaries = Array.from(
     reservations.reduce((map, reservation) => {
-      if (!countsAsRoomReservation(reservation.travel_group_mode, reservation.room) && reservation.travel_group_mode !== 'join') {
+      if (
+        !countsAsRoomReservation(reservation.travel_group_mode, reservation.room) &&
+        !(reservation.travel_group_mode === 'join' && (reservation.number_of_people ?? 0) > 0)
+      ) {
         return map
       }
 
@@ -740,6 +809,8 @@ function AdminPanel() {
       })
 
       if (!current) {
+        const primaryContactAttendeeId = nextAttendees.find((attendee) => attendee.isPrimaryContact)?.id ?? null
+
         map.set(key, {
           id: key,
           reservation,
@@ -747,6 +818,7 @@ function AdminPanel() {
           confirmedPeople: reservation.number_of_people ?? nextAttendees.length,
           linkedInvitations: 1,
           invitationCodes: reservation.invitation_code ? [reservation.invitation_code] : [],
+          primaryContactAttendeeId,
         })
         return map
       }
@@ -768,11 +840,20 @@ function AdminPanel() {
         nextCreatedAt > currentCreatedAt
           ? reservation
           : current.reservation
+      const nextPrimaryContactAttendeeId = nextAttendees.find((attendee) => attendee.isPrimaryContact)?.id ?? null
+      const primaryContactAttendeeId =
+        reservation.travel_group_mode === 'create'
+          ? nextPrimaryContactAttendeeId
+          : current.primaryContactAttendeeId ?? nextPrimaryContactAttendeeId
+      const mergedAttendees = Array.from(attendeeMap.values()).map((attendee) => ({
+        ...attendee,
+        isPrimaryContact: primaryContactAttendeeId !== null && attendee.id === primaryContactAttendeeId,
+      }))
 
       map.set(key, {
         id: key,
         reservation: baseReservation,
-        attendees: Array.from(attendeeMap.values()),
+        attendees: mergedAttendees,
         confirmedPeople: current.confirmedPeople + (reservation.number_of_people ?? nextAttendees.length),
         linkedInvitations: current.linkedInvitations + 1,
         invitationCodes: Array.from(
@@ -781,6 +862,7 @@ function AdminPanel() {
             ...(reservation.invitation_code ? [reservation.invitation_code] : []),
           ]),
         ),
+        primaryContactAttendeeId,
       })
 
       return map
@@ -809,6 +891,20 @@ function AdminPanel() {
     filteredReservations.find((reservation) => reservation.id === selectedReservationId) ??
     filteredReservations[0] ??
     null
+  const selectedAttendingGuests = selectedReservation?.attendees.filter((guest) => guest.attending) ?? []
+  const declinedInvitations = reservations
+    .map((reservation) => {
+      const declinedGuests = (reservation.attendees_json ?? []).filter((guest) => !guest.attending)
+
+      return {
+        id: reservation.id,
+        invitationCode: reservation.invitation_code ?? 'Sin codigo',
+        invitationLabel: reservation.invitation_label ?? reservation.full_name ?? 'Invitacion sin nombre',
+        guests: declinedGuests,
+        createdAt: reservation.created_at,
+      }
+    })
+    .filter((reservation) => reservation.guests.length > 0)
 
   const actualReservations = reservationSummaries.length
   const confirmedPeople = reservations.reduce((total, reservation) => total + (reservation.number_of_people ?? 0), 0)
@@ -904,6 +1000,11 @@ function AdminPanel() {
           <strong>{joiningGroups}</strong>
           <p>familias que comparten grupo con otros invitados</p>
         </article>
+        <article className="admin-stat-card">
+          <span className="meta-label">No asistiran</span>
+          <strong>{declinedInvitations.reduce((total, reservation) => total + reservation.guests.length, 0)}</strong>
+          <p>personas que marcaron que no iran</p>
+        </article>
       </section>
 
       <section className="admin-panel-grid">
@@ -992,19 +1093,19 @@ function AdminPanel() {
                 </article>
                 <article className="admin-summary-card">
                   <span className="meta-label">Reserva</span>
-                  <strong>{selectedReservation.confirmedPeople} persona(s)</strong>
+                  <strong>{selectedReservation.confirmedPeople} persona(s) asisten</strong>
                   <p>Invitaciones dentro: {selectedReservation.linkedInvitations}</p>
-                  <p>Capacidad: {selectedReservation.reservation.group_capacity ?? selectedReservation.confirmedPeople}</p>
+                  <p>Habitación: {selectedReservation.reservation.room ?? 'Sin habitación'}</p>
                 </article>
               </div>
 
               <div className="admin-attendees-card">
                 <div className="flow-card-heading">
-                  <span className="meta-label">Asistentes</span>
-                  <strong>{selectedReservation.attendees.length} persona(s) registradas</strong>
+                  <span className="meta-label">Asisten</span>
+                  <strong>{selectedAttendingGuests.length} persona(s) confirmadas</strong>
                 </div>
                 <div className="admin-attendees-grid">
-                  {selectedReservation.attendees.map((guest) => (
+                  {selectedAttendingGuests.map((guest) => (
                     <article className="admin-attendee-card" key={guest.id}>
                       <strong>
                         {guest.fullName || guest.name}
@@ -1016,8 +1117,8 @@ function AdminPanel() {
                       <p>Alergias: {guest.hasAllergies ? guest.allergies || 'Sí, sin detalle' : 'No reporta'}</p>
                     </article>
                   ))}
-                  {!selectedReservation.attendees.length ? (
-                    <p className="availability-note">Esta reserva todavía no tiene asistentes estructurados guardados.</p>
+                  {!selectedAttendingGuests.length ? (
+                    <p className="availability-note">Esta reserva no tiene asistentes confirmados.</p>
                   ) : null}
                 </div>
               </div>
@@ -1026,6 +1127,30 @@ function AdminPanel() {
             <p className="availability-note">Selecciona una reserva para ver el detalle.</p>
           )}
         </section>
+      </section>
+
+      <section className="admin-attendees-card">
+        <div className="flow-card-heading">
+          <span className="meta-label">No asistiran</span>
+          <strong>
+            {declinedInvitations.reduce((total, reservation) => total + reservation.guests.length, 0)} persona(s) registradas
+          </strong>
+        </div>
+        <div className="admin-attendees-grid">
+          {declinedInvitations.map((reservation) => (
+            <article className="admin-attendee-card" key={reservation.id}>
+              <strong>{reservation.invitationLabel}</strong>
+              <p>Codigo: {reservation.invitationCode}</p>
+              <p>Guardada: {formatAdminDateTime(reservation.createdAt)}</p>
+              <p>
+                Personas: {reservation.guests.map((guest) => guest.fullName || guest.name).join(', ')}
+              </p>
+            </article>
+          ))}
+          {!declinedInvitations.length ? (
+            <p className="availability-note">Aun no hay personas guardadas con no asistire.</p>
+          ) : null}
+        </div>
       </section>
     </main>
   )
@@ -1050,7 +1175,8 @@ function App() {
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [isEditingReservation, setIsEditingReservation] = useState(false)
   const [isReservationLoading, setIsReservationLoading] = useState(false)
-  const [reservedRoomsByLabel, setReservedRoomsByLabel] = useState<Record<string, number>>({})
+  const [savedReservationSnapshot, setSavedReservationSnapshot] = useState<SavedReservationSnapshot | null>(null)
+  const [availabilityEntries, setAvailabilityEntries] = useState<AvailabilityEntry[]>([])
   const [existingGroups, setExistingGroups] = useState<ExistingGroupOption[]>([])
   const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false)
   const [availabilityError, setAvailabilityError] = useState('')
@@ -1060,6 +1186,7 @@ function App() {
   const invitationType = getInvitationType(activeInvitation)
   const attendingMembers = familyMembers.filter((member) => member.attending)
   const attendingCount = attendingMembers.length
+  const isDecliningInvitation = attendingCount === 0
   const isKnownInvitation = activeInvitation.code !== 'INV-DEFAULT'
   const principalContact = attendingMembers.find((member) => member.isPrimaryContact) ?? attendingMembers[0] ?? null
   const principalContactName = principalContact?.fullName.trim() || activeInvitation.members[0] || ''
@@ -1078,15 +1205,37 @@ function App() {
     formData.numberOfNights === '1' || formData.numberOfNights === '2' || formData.numberOfNights === '3'
       ? formData.numberOfNights
       : null
+  const currentInvitationCodeForAvailability =
+    savedReservationSnapshot?.invitationCode ?? (isKnownInvitation ? activeInvitation.code : null)
   const availableLodgingOptions = lodgingOptions.filter((option) => {
-    const reservedCount = reservedRoomsByLabel[option.label] ?? 0
+    const reservedCount = getAdjustedReservedRoomCount(
+      option.label,
+      availabilityEntries,
+      formData.checkInDate,
+      formData.checkOutDate,
+      currentInvitationCodeForAvailability,
+    )
     return option.capacity >= requiredLodgingCapacity && (reservedCount < option.totalRooms || option.label === formData.room)
   })
   const selectedPricePerPerson =
     selectedRoomOption && selectedNightCount ? selectedRoomOption.pricesByNight[selectedNightCount] : null
   const selectedStayTotal = selectedPricePerPerson ? selectedPricePerPerson * requiredLodgingCapacity : null
+  const paymentPlan = selectedStayTotal
+    ? [
+        { label: '30% hasta el 1 de Octubre de 2026', amount: selectedStayTotal * 0.3 },
+        { label: '30% hasta el 22 de Diciembre de 2026', amount: selectedStayTotal * 0.3 },
+        { label: '40% hasta el 1 de Abril de 2026', amount: selectedStayTotal * 0.4 },
+      ]
+    : []
   const selectedRemainingRooms = selectedRoomOption
-    ? selectedRoomOption.totalRooms - (reservedRoomsByLabel[selectedRoomOption.label] ?? 0)
+    ? selectedRoomOption.totalRooms -
+      getAdjustedReservedRoomCount(
+        selectedRoomOption.label,
+        availabilityEntries,
+        formData.checkInDate,
+        formData.checkOutDate,
+        currentInvitationCodeForAvailability,
+      )
     : null
   const selectedExistingGroup =
     formData.travelGroupMode === 'join'
@@ -1188,7 +1337,7 @@ function App() {
   useEffect(() => {
     if (!isRsvpOpen || !supabase) {
       if (!supabase) {
-        setReservedRoomsByLabel({})
+        setAvailabilityEntries([])
       }
       return
     }
@@ -1209,12 +1358,12 @@ function App() {
 
       if (error) {
         setAvailabilityError('No pudimos validar la disponibilidad en tiempo real. Intenta de nuevo.')
-        setReservedRoomsByLabel({})
+        setAvailabilityEntries([])
         setIsAvailabilityLoading(false)
         return
       }
 
-      const nextReservedRoomsByLabel: Record<string, number> = {}
+      const nextAvailabilityEntries: AvailabilityEntry[] = []
       const nextExistingGroups = new Map<string, ExistingGroupOption>()
 
       for (const row of data ?? []) {
@@ -1228,8 +1377,21 @@ function App() {
         const rowPeopleCount =
           typeof row.number_of_people === 'number' && Number.isFinite(row.number_of_people) ? row.number_of_people : 0
 
-        if (countsAsRoomReservation(travelGroupMode as TravelGroupMode | null, roomLabel)) {
-          nextReservedRoomsByLabel[roomLabel] = (nextReservedRoomsByLabel[roomLabel] ?? 0) + 1
+        if (
+          countsAsRoomReservation(travelGroupMode as TravelGroupMode | null, roomLabel) &&
+          typeof row.check_in_date === 'string' &&
+          row.check_in_date.trim() &&
+          typeof row.check_out_date === 'string' &&
+          row.check_out_date.trim()
+        ) {
+          nextAvailabilityEntries.push({
+            invitationCode:
+              typeof row.invitation_code === 'string' && row.invitation_code.trim() ? row.invitation_code.trim() : null,
+            room: roomLabel,
+            checkInDate: row.check_in_date,
+            checkOutDate: row.check_out_date,
+            travelGroupMode: travelGroupMode as TravelGroupMode | null,
+          })
         }
 
         if (travelGroupMode === 'create' && groupId && groupLabel) {
@@ -1284,7 +1446,7 @@ function App() {
 
       const nextGroups = Array.from(nextExistingGroups.values())
 
-      setReservedRoomsByLabel(nextReservedRoomsByLabel)
+      setAvailabilityEntries(nextAvailabilityEntries)
       setExistingGroups(nextGroups)
       writeStoredGroups(nextGroups)
       setIsAvailabilityLoading(false)
@@ -1322,6 +1484,7 @@ function App() {
       if (error) {
         setFamilyMembers(createMembers(activeInvitation))
         setFormData(buildInitialFormData(activeInvitation))
+        setSavedReservationSnapshot(null)
         setIsEditingReservation(false)
         setIsReservationLoading(false)
         return
@@ -1332,6 +1495,7 @@ function App() {
       if (!savedReservation) {
         setFamilyMembers(createMembers(activeInvitation))
         setFormData(buildInitialFormData(activeInvitation))
+        setSavedReservationSnapshot(null)
         setIsEditingReservation(false)
         setIsReservationLoading(false)
         return
@@ -1356,7 +1520,7 @@ function App() {
 
         return {
           ...member,
-          attending: true,
+          attending: storedMember.attending,
           fullName: storedMember.fullName || member.fullName,
           identityDocument: storedMember.identityDocument || '',
           phone: storedMember.phone || '',
@@ -1379,6 +1543,11 @@ function App() {
           }))
 
       setFamilyMembers(normalizedMembers)
+      setSavedReservationSnapshot({
+        invitationCode: savedReservation.invitation_code,
+        room: savedReservation.room?.trim() || null,
+        travelGroupMode: savedReservation.travel_group_mode,
+      })
       const nextFormData = {
         ...buildInitialFormData(activeInvitation),
         fullName: savedReservation.full_name?.trim() || activeInvitation.members[0] || '',
@@ -1442,6 +1611,7 @@ function App() {
   function openRsvpModal() {
     setFamilyMembers(createMembers(activeInvitation))
     setFormData(buildInitialFormData(activeInvitation))
+    setSavedReservationSnapshot(null)
     setIsEditingReservation(false)
     setIsReservationLoading(Boolean(supabase) && isKnownInvitation)
     setIsRsvpOpen(true)
@@ -1615,13 +1785,7 @@ function App() {
     event.preventDefault()
     const wasEditingReservation = isEditingReservation
 
-    if (attendingCount === 0) {
-      setSubmitState('error')
-      setFeedbackMessage('Selecciona por lo menos una persona asistente dentro de la invitación.')
-      return
-    }
-
-    if (!principalContact) {
+    if (attendingCount > 0 && !principalContact) {
       setSubmitState('error')
       setFeedbackMessage('Selecciona un contacto principal entre las personas que asistirán.')
       return
@@ -1663,11 +1827,12 @@ function App() {
       return
     }
 
-    const requiresOwnLodgingDetails = formData.travelGroupMode !== 'join'
+    const requiresOwnLodgingDetails = formData.travelGroupMode !== 'join' && !isDecliningInvitation
     const selectedGroupLodgingDetails =
-      formData.travelGroupMode === 'join' ? selectedExistingGroup : null
+      formData.travelGroupMode === 'join' && !isDecliningInvitation ? selectedExistingGroup : null
 
     if (
+      !isDecliningInvitation &&
       formData.travelGroupMode === 'join' &&
       (!selectedGroupLodgingDetails?.room ||
         !selectedGroupLodgingDetails.numberOfNights ||
@@ -1730,18 +1895,34 @@ function App() {
           `${member.fullName.trim()}${member.isPrimaryContact ? ' (contacto principal)' : ''} | ID: ${member.identityDocument.trim()} | Tel: ${member.phone.trim()} | Correo: ${member.email.trim() || 'No registra'} | Alergias: ${member.hasAllergies ? member.allergies.trim() : 'No reporta'}`,
       )
       .join(' || ')
+    const nonAttendingMembers = familyMembers.filter((member) => !member.attending)
+    const nonAttendingMembersDetails = nonAttendingMembers
+      .map((member) => member.fullName.trim() || member.name.trim())
+      .filter(Boolean)
+      .join(' | ')
+    const fallbackContact = familyMembers[0] ?? null
+    const savedContactName =
+      principalContact?.fullName.trim() ||
+      fallbackContact?.fullName.trim() ||
+      fallbackContact?.name.trim() ||
+      activeInvitation.members[0] ||
+      activeInvitation.label
+    const savedIdentityDocument = principalContact?.identityDocument.trim() || null
+    const savedPhone = principalContact?.phone.trim() || null
 
     const payload = {
-      full_name: principalContact.fullName.trim(),
-      identity_document: principalContact.identityDocument.trim(),
-      phone: principalContact.phone.trim(),
+      full_name: savedContactName,
+      identity_document: savedIdentityDocument,
+      phone: savedPhone,
       description:
         [
           `Código de invitación: ${activeInvitation.code}`,
           `Invitación visible: ${activeInvitation.label}`,
           `Tipo de invitación: ${invitationType === 'family' ? 'Familiar' : 'Individual'}`,
           `Miembros: ${membersSummary}`,
-          `Datos asistentes: ${attendingMembersDetails}`,
+          attendingMembersDetails ? `Datos asistentes: ${attendingMembersDetails}` : 'Datos asistentes: nadie asistirá',
+          nonAttendingMembersDetails ? `No podrán asistir: ${nonAttendingMembersDetails}` : '',
+          isDecliningInvitation ? 'Estado: esta invitación confirmó que no asistirá' : '',
           `Modo de hospedaje: ${travelGroupOptions.find((option) => option.value === formData.travelGroupMode)?.title ?? 'Sin definir'}`,
           buildGroupSummary(formData, activeInvitation.code, principalContactName, selectedExistingGroup),
           requiresOwnLodgingDetails && selectedRoomOption ? `Habitación seleccionada: ${selectedRoomOption.label}` : '',
@@ -1754,9 +1935,11 @@ function App() {
         ]
           .filter(Boolean)
           .join(' | ') || null,
-      room: requiresOwnLodgingDetails
-        ? formData.room.trim() || null
-        : selectedGroupLodgingDetails?.room || null,
+      room: isDecliningInvitation
+        ? null
+        : requiresOwnLodgingDetails
+          ? formData.room.trim() || null
+          : selectedGroupLodgingDetails?.room || null,
       number_of_people: attendingCount,
       invitation_code: activeInvitation.code,
       invitation_label: activeInvitation.label,
@@ -1780,35 +1963,47 @@ function App() {
             ? selectedExistingGroup?.leaderName ?? null
             : null,
       group_capacity: formData.travelGroupMode === 'create' ? Number(formData.sharedInvitationsEstimate) || null : null,
-      number_of_nights: requiresOwnLodgingDetails
-        ? Number(formData.numberOfNights)
-        : selectedGroupLodgingDetails?.numberOfNights ?? null,
-      check_in_date: requiresOwnLodgingDetails
-        ? formData.checkInDate
-        : selectedGroupLodgingDetails?.checkInDate ?? null,
-      check_out_date: requiresOwnLodgingDetails
-        ? formData.checkOutDate
-        : selectedGroupLodgingDetails?.checkOutDate ?? null,
-      arrival_time: requiresOwnLodgingDetails
-        ? formData.arrivalTime || null
-        : selectedGroupLodgingDetails?.arrivalTime || null,
-      departure_time: requiresOwnLodgingDetails
-        ? formData.departureTime || null
-        : selectedGroupLodgingDetails?.departureTime || null,
-      boarding_point: requiresOwnLodgingDetails
-        ? formData.boardingPoint.trim() || null
-        : selectedGroupLodgingDetails?.boardingPoint || null,
-      attendees_json: attendingMembers.map((member) => ({
+      number_of_nights: isDecliningInvitation
+        ? null
+        : requiresOwnLodgingDetails
+          ? Number(formData.numberOfNights)
+          : selectedGroupLodgingDetails?.numberOfNights ?? null,
+      check_in_date: isDecliningInvitation
+        ? null
+        : requiresOwnLodgingDetails
+          ? formData.checkInDate
+          : selectedGroupLodgingDetails?.checkInDate ?? null,
+      check_out_date: isDecliningInvitation
+        ? null
+        : requiresOwnLodgingDetails
+          ? formData.checkOutDate
+          : selectedGroupLodgingDetails?.checkOutDate ?? null,
+      arrival_time: isDecliningInvitation
+        ? null
+        : requiresOwnLodgingDetails
+          ? formData.arrivalTime || null
+          : selectedGroupLodgingDetails?.arrivalTime || null,
+      departure_time: isDecliningInvitation
+        ? null
+        : requiresOwnLodgingDetails
+          ? formData.departureTime || null
+          : selectedGroupLodgingDetails?.departureTime || null,
+      boarding_point: isDecliningInvitation
+        ? null
+        : requiresOwnLodgingDetails
+          ? formData.boardingPoint.trim() || null
+          : selectedGroupLodgingDetails?.boardingPoint || null,
+      attendees_json: familyMembers.map((member) => ({
         id: member.id,
         name: member.name,
-        attending: true,
-        fullName: member.fullName.trim(),
+        attending: member.attending,
+        fullName: member.fullName.trim() || member.name.trim(),
         identityDocument: member.identityDocument.trim(),
         phone: member.phone.trim(),
         email: member.email.trim(),
         hasAllergies: member.hasAllergies,
         allergies: member.hasAllergies ? member.allergies.trim() : '',
-        isPrimaryContact: member.isPrimaryContact,
+        isPrimaryContact: member.attending ? member.isPrimaryContact : false,
       })),
       allergies:
         attendingMembers
@@ -1820,6 +2015,8 @@ function App() {
           formData.travelGroupMode === 'create' && formData.sharedInvitationsEstimate
             ? `Personas dentro del grupo: ${formData.sharedInvitationsEstimate}`
             : '',
+          `Asisten: ${attendingCount}`,
+          `No asisten: ${nonAttendingMembers.length}`,
         ]
           .filter(Boolean)
           .join(' | ') || null,
@@ -1864,6 +2061,11 @@ function App() {
       setExistingGroups(nextStoredGroups)
     }
 
+    setSavedReservationSnapshot({
+      invitationCode: activeInvitation.code,
+      room: payload.room,
+      travelGroupMode: payload.travel_group_mode,
+    })
     setIsEditingReservation(true)
     setSubmitState('success')
     setFeedbackMessage(
@@ -1984,10 +2186,7 @@ function App() {
               Ver información completa
             </button>
             <button className="primary-button" disabled={!isKnownInvitation} onClick={openRsvpModal} type="button">
-              Asistiré
-            </button>
-            <button className="decline-button" type="button">
-              No podré asistir
+              Responder invitación
             </button>
           </div>
         </section>
@@ -2120,7 +2319,7 @@ function App() {
             </button>
             <p className="eyebrow">Confirmación</p>
             <h2 id="rsvp-title">{activeInvitation.label}</h2>
-            <p className="availability-note">
+            <p className="modal-copy rsvp-intro-copy">
               {isReservationLoading
                 ? 'Estamos buscando si esta invitación ya tenía una reserva guardada...'
                 : isEditingReservation
@@ -2129,54 +2328,6 @@ function App() {
             </p>
 
             <form className="rsvp-form" onSubmit={handleSubmit}>
-              <div className="full-span form-section-card is-soft">
-                <article className="lodging-banner">
-                  <p className="lodging-banner-copy">
-                    La siguiente información corresponde al precio final que se mostrará más adelante. Te recomendamos
-                    revisarla antes de confirmar tu reserva, ya que incluye las condiciones, formas de pago y otros
-                    detalles importantes.
-                  </p>
-                  <div className="lodging-cards-grid">
-                    <article className="lodging-detail-card">
-                      <span className="meta-label">Que incluye este plan:</span>
-                      <ul className="lodging-includes-list">
-                        <li>Hospedaje en Hotel Isla Múcura</li>
-                        <li>Alimentación desayuno -almuerzo-cena (buffet o platos a la carta)</li>
-                        <li>Transporte desde Cartagena a la Isla en lancha (Ida y vuelta)</li>
-                      </ul>
-                    </article>
-
-                    <article className="lodging-detail-card">
-                      <span className="meta-label">Que no incluye este plan:</span>
-                      <ul className="lodging-includes-list">
-                        <li>Transporte desde tu ciudad a Cartagena</li>
-                        <li>Gastos personales y consumos adicionales</li>
-                      </ul>
-                    </article>
-
-                    <article className="lodging-detail-card">
-                      <span className="meta-label">Plan de pagos:</span>
-                      <ul className="lodging-includes-list">
-                        <li>30% hasta el 1 de Octubre de 2026.</li>
-                        <li>30% hasta el 22 de Diciembre de 2026.</li>
-                        <li>40% hasta el 1 de Abril de 2026.</li>
-                      </ul>
-                    </article>
-
-                    <article className="lodging-detail-card">
-                      <span className="meta-label">Importante:</span>
-                      <p className="lodging-note">
-                        Una vez realizado un abono, el hotel no realiza devoluciones.
-                      </p>
-                      <p className="lodging-note">
-                        Tienes tiempo de confirmar o editar tu reserva hasta el{' '}
-                        <strong className="lodging-deadline">1 de Agosto de 2026</strong>.
-                      </p>
-                    </article>
-                  </div>
-                </article>
-              </div>
-
               <div className="full-span form-section-card">
                 <div className="flow-card-heading">
                   <span className="meta-label">Miembros de esta invitación</span>
@@ -2432,7 +2583,15 @@ function App() {
                                 <select name="room" onChange={handleInputChange} required value={formData.room}>
                                   <option value="">Selecciona una habitación</option>
                                   {availableLodgingOptions.map((option) => {
-                                    const remainingRooms = option.totalRooms - (reservedRoomsByLabel[option.label] ?? 0)
+                                    const remainingRooms =
+                                      option.totalRooms -
+                                      getAdjustedReservedRoomCount(
+                                        option.label,
+                                        availabilityEntries,
+                                        formData.checkInDate,
+                                        formData.checkOutDate,
+                                        currentInvitationCodeForAvailability,
+                                      )
 
                                     return (
                                       <option key={option.id} value={option.label}>
@@ -2499,14 +2658,24 @@ function App() {
                               <span className="meta-label">Resumen de precio</span>
                               <strong>{selectedRoomOption.label}</strong>
                               <p>
-                                Capacidad máxima: {selectedRoomOption.capacity} persona(s) · Capacidad requerida:{' '}
-                                {requiredLodgingCapacity}
+                                Esta habitación admite hasta {selectedRoomOption.capacity} persona(s) ·{' '}
+                                {formData.travelGroupMode === 'create'
+                                  ? `Personas dentro del grupo: ${requiredLodgingCapacity}`
+                                  : `En esta reserva se hospedarán ${requiredLodgingCapacity}`}
                               </p>
                               <p>
                                 Valor por persona para {selectedNightCount} noche(s):{' '}
                                 {formatCurrency(selectedPricePerPerson)}
                               </p>
                               <p>Total estimado del grupo: {formatCurrency(selectedStayTotal)}</p>
+                              <div>
+                                <span className="meta-label">Plan de pagos</span>
+                                {paymentPlan.map((installment) => (
+                                  <p key={installment.label}>
+                                    {installment.label}: {formatCurrency(installment.amount)}
+                                  </p>
+                                ))}
+                              </div>
                             </article>
                           ) : (
                             <p className="availability-note">
@@ -2548,7 +2717,15 @@ function App() {
                         >
                           <option value="">Selecciona una habitación</option>
                           {availableLodgingOptions.map((option) => {
-                            const remainingRooms = option.totalRooms - (reservedRoomsByLabel[option.label] ?? 0)
+                            const remainingRooms =
+                              option.totalRooms -
+                              getAdjustedReservedRoomCount(
+                                option.label,
+                                availabilityEntries,
+                                formData.checkInDate,
+                                formData.checkOutDate,
+                                currentInvitationCodeForAvailability,
+                              )
 
                             return (
                               <option key={option.id} value={option.label}>
@@ -2607,11 +2784,19 @@ function App() {
                         <span className="meta-label">Resumen de precio</span>
                         <strong>{selectedRoomOption.label}</strong>
                         <p>
-                          Capacidad máxima: {selectedRoomOption.capacity} persona(s) · Capacidad requerida:{' '}
+                          Esta habitación admite hasta {selectedRoomOption.capacity} persona(s) · En esta reserva se hospedarán{' '}
                           {requiredLodgingCapacity}
                         </p>
                         <p>Valor por persona para {selectedNightCount} noche(s): {formatCurrency(selectedPricePerPerson)}</p>
                         <p>Total estimado del grupo: {formatCurrency(selectedStayTotal)}</p>
+                        <div>
+                          <span className="meta-label">Plan de pagos</span>
+                          {paymentPlan.map((installment) => (
+                            <p key={installment.label}>
+                              {installment.label}: {formatCurrency(installment.amount)}
+                            </p>
+                          ))}
+                        </div>
                       </article>
                     ) : null}
                     </div>
@@ -2631,7 +2816,7 @@ function App() {
                 </button>
                 <button
                   className="primary-button"
-                  disabled={submitState === 'submitting' || attendingCount === 0 || isReservationLoading}
+                  disabled={submitState === 'submitting' || isReservationLoading}
                   type="submit"
                 >
                   {submitState === 'submitting'
@@ -2667,6 +2852,51 @@ function App() {
             </button>
             <p className="eyebrow">Información importante</p>
             <h2 id="attendance-info-modal-title">Antes de confirmar asistencia</h2>
+            <article className="lodging-banner">
+              <p className="lodging-banner-copy">
+                La siguiente información corresponde al precio final que se mostrará más adelante. Te recomendamos
+                revisarla antes de confirmar tu reserva, ya que incluye las condiciones, formas de pago y otros
+                detalles importantes.
+              </p>
+              <div className="lodging-cards-grid">
+                <article className="lodging-detail-card">
+                  <span className="meta-label">Que incluye este plan:</span>
+                  <ul className="lodging-includes-list">
+                    <li>Hospedaje en Hotel Isla Múcura</li>
+                    <li>Alimentación desayuno -almuerzo-cena (buffet o platos a la carta)</li>
+                    <li>Transporte desde Cartagena a la Isla en lancha (Ida y vuelta)</li>
+                  </ul>
+                </article>
+
+                <article className="lodging-detail-card">
+                  <span className="meta-label">Que no incluye este plan:</span>
+                  <ul className="lodging-includes-list">
+                    <li>Transporte desde tu ciudad a Cartagena</li>
+                    <li>Gastos personales y consumos adicionales</li>
+                  </ul>
+                </article>
+
+                <article className="lodging-detail-card">
+                  <span className="meta-label">Plan de pagos:</span>
+                  <ul className="lodging-includes-list">
+                    <li>30% hasta el 1 de Octubre de 2026.</li>
+                    <li>30% hasta el 22 de Diciembre de 2026.</li>
+                    <li>40% hasta el 1 de Abril de 2026.</li>
+                  </ul>
+                </article>
+
+                <article className="lodging-detail-card">
+                  <span className="meta-label">Importante:</span>
+                  <p className="lodging-note">
+                    Una vez realizado un abono, el hotel no realiza devoluciones.
+                  </p>
+                  <p className="lodging-note">
+                    Tienes tiempo de confirmar o editar tu reserva hasta el{' '}
+                    <strong className="lodging-deadline">1 de Agosto de 2026</strong>.
+                  </p>
+                </article>
+              </div>
+            </article>
             <img
               alt="Información de la boda en Isla Múcura con plan, fechas, tarifas y datos logísticos"
               className="info-modal-image"
