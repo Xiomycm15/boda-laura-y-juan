@@ -63,6 +63,8 @@ type ExistingGroupOption = {
   id: string
   label: string
   leaderName: string
+  capacity: number
+  reservedPeople: number
   room: string
   numberOfNights: number
   checkInDate: string
@@ -72,7 +74,57 @@ type ExistingGroupOption = {
   boardingPoint: string
 }
 
+type SavedRsvpRecord = {
+  full_name: string | null
+  identity_document: string | null
+  phone: string | null
+  invitation_code: string | null
+  invitation_label: string | null
+  description: string | null
+  travel_group_mode: TravelGroupMode | null
+  group_id: string | null
+  group_label: string | null
+  group_leader_name: string | null
+  group_capacity: number | null
+  room: string | null
+  number_of_people: number | null
+  number_of_nights: number | null
+  check_in_date: string | null
+  check_out_date: string | null
+  arrival_time: string | null
+  departure_time: string | null
+  boarding_point: string | null
+  allergies: string | null
+  notes: string | null
+  attendees_json: InvitationMember[] | null
+}
+
+type AdminReservationRecord = {
+  id: string
+  full_name: string | null
+  identity_document: string | null
+  phone: string | null
+  invitation_code: string | null
+  invitation_label: string | null
+  travel_group_mode: TravelGroupMode | null
+  group_id: string | null
+  group_label: string | null
+  group_leader_name: string | null
+  group_capacity: number | null
+  room: string | null
+  number_of_people: number | null
+  number_of_nights: number | null
+  check_in_date: string | null
+  check_out_date: string | null
+  attendees_json: InvitationMember[] | null
+  allergies: string | null
+  notes: string | null
+  created_at: string | null
+}
+
 const LOCAL_GROUPS_STORAGE_KEY = 'laura-juan-created-groups'
+const ADMIN_SESSION_STORAGE_KEY = 'laura-juan-admin-access'
+const adminAccessKey = import.meta.env.VITE_NOVIOS_PANEL_KEY ?? 'laura-juan-2027'
 
 type RsvpFormData = {
   fullName: string
@@ -176,6 +228,110 @@ const initialSongSuggestionFormData: SongSuggestionFormData = {
   songName: '',
   artistName: '',
   songLink: '',
+}
+
+function buildInitialFormData(invitation: InvitationPreset): RsvpFormData {
+  return {
+    ...initialFormData,
+    fullName: invitation.members[0] ?? '',
+  }
+}
+
+function isAdminRoute() {
+  return window.location.pathname.startsWith('/novios')
+}
+
+function formatAdminDate(value: string | null) {
+  if (!value) {
+    return 'Sin definir'
+  }
+
+  return new Intl.DateTimeFormat('es-CO', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(`${value}T12:00:00`))
+}
+
+function formatAdminDateTime(value: string | null) {
+  if (!value) {
+    return 'Sin registro'
+  }
+
+  return new Intl.DateTimeFormat('es-CO', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
+function sanitizeStoredAttendees(value: unknown): InvitationMember[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .map((item, index) => {
+      if (!item || typeof item !== 'object') {
+        return null
+      }
+
+      const candidate = item as Partial<InvitationMember>
+
+      return {
+        id: typeof candidate.id === 'string' && candidate.id.trim() ? candidate.id : `saved-${index}`,
+        name: typeof candidate.name === 'string' ? candidate.name : '',
+        attending: true,
+        fullName: typeof candidate.fullName === 'string' ? candidate.fullName : typeof candidate.name === 'string' ? candidate.name : '',
+        identityDocument: typeof candidate.identityDocument === 'string' ? candidate.identityDocument : '',
+        phone: typeof candidate.phone === 'string' ? candidate.phone : '',
+        email: typeof candidate.email === 'string' ? candidate.email : '',
+        hasAllergies: Boolean(candidate.hasAllergies) || Boolean(typeof candidate.allergies === 'string' && candidate.allergies.trim()),
+        allergies: typeof candidate.allergies === 'string' ? candidate.allergies : '',
+        isPrimaryContact: Boolean(candidate.isPrimaryContact),
+      }
+    })
+    .filter((member): member is InvitationMember => member !== null)
+}
+
+function resolveStoredAttendees(
+  value: unknown,
+  fallback: {
+    reservationId?: string | null
+    fullName?: string | null
+    identityDocument?: string | null
+    phone?: string | null
+    allergies?: string | null
+  },
+): InvitationMember[] {
+  const sanitizedAttendees = sanitizeStoredAttendees(value)
+
+  if (sanitizedAttendees.length > 0) {
+    return sanitizedAttendees
+  }
+
+  const fallbackName = fallback.fullName?.trim() ?? ''
+  const fallbackDocument = fallback.identityDocument?.trim() ?? ''
+  const fallbackPhone = fallback.phone?.trim() ?? ''
+  const fallbackAllergies = fallback.allergies?.trim() ?? ''
+
+  if (!fallbackName && !fallbackDocument && !fallbackPhone && !fallbackAllergies) {
+    return []
+  }
+
+  return [
+    {
+      id: fallback.reservationId?.trim() || 'fallback-contact',
+      name: fallbackName,
+      attending: true,
+      fullName: fallbackName,
+      identityDocument: fallbackDocument,
+      phone: fallbackPhone,
+      email: '',
+      hasAllergies: Boolean(fallbackAllergies),
+      allergies: fallbackAllergies,
+      isPrimaryContact: true,
+    },
+  ]
 }
 
 const lovePortraits = [
@@ -416,37 +572,6 @@ function getNightDifference(checkInDate: string, checkOutDate: string) {
   return Math.round((checkOutUtc - checkInUtc) / (1000 * 60 * 60 * 24))
 }
 
-function parseCreatedGroup(description: string): ExistingGroupOption | null {
-  const groupNameMatch = description.match(/Crea grupo compartido:\s*([^|]+)/)
-  const groupIdMatch = description.match(/ID del grupo:\s*([^|]+)/)
-  const leaderMatch = description.match(/Responsable:\s*([^|]+)/)
-
-  if (!groupNameMatch || !groupIdMatch) {
-    return null
-  }
-
-  const label = groupNameMatch[1]?.trim()
-  const id = groupIdMatch[1]?.trim()
-  const leaderName = leaderMatch?.[1]?.trim() ?? 'Pendiente'
-
-  if (!label || !id) {
-    return null
-  }
-
-  return {
-    id,
-    label,
-    leaderName,
-    room: '',
-    numberOfNights: 0,
-    checkInDate: '',
-    checkOutDate: '',
-    arrivalTime: '',
-    departureTime: '',
-    boardingPoint: '',
-  }
-}
-
 function readStoredGroups(): ExistingGroupOption[] {
   if (typeof window === 'undefined') {
     return []
@@ -461,7 +586,13 @@ function readStoredGroups(): ExistingGroupOption[] {
   try {
     const parsedValue = JSON.parse(rawValue) as ExistingGroupOption[]
 
-    return Array.isArray(parsedValue) ? parsedValue : []
+    return Array.isArray(parsedValue)
+      ? parsedValue.map((group) => ({
+          ...group,
+          capacity: typeof group.capacity === 'number' ? group.capacity : 0,
+          reservedPeople: typeof group.reservedPeople === 'number' ? group.reservedPeople : 0,
+        }))
+      : []
   } catch {
     return []
   }
@@ -475,7 +606,12 @@ function writeStoredGroups(groups: ExistingGroupOption[]) {
   window.localStorage.setItem(LOCAL_GROUPS_STORAGE_KEY, JSON.stringify(groups))
 }
 
-function buildGroupSummary(formData: RsvpFormData, invitationCode: string, principalContactName: string) {
+function buildGroupSummary(
+  formData: RsvpFormData,
+  invitationCode: string,
+  principalContactName: string,
+  selectedExistingGroup?: ExistingGroupOption | null,
+) {
   if (formData.travelGroupMode === 'individual') {
     return 'La invitación se hospeda sola y mantiene su reserva independiente.'
   }
@@ -484,10 +620,310 @@ function buildGroupSummary(formData: RsvpFormData, invitationCode: string, princ
     return `Crea grupo compartido: ${formData.groupName || 'Sin nombre aún'} | ID del grupo: ${generateGroupCode(invitationCode, formData.groupName)} | Responsable: ${formData.groupLeaderName || principalContactName || 'Pendiente'} | Personas dentro del grupo: ${formData.sharedInvitationsEstimate || 'Pendiente'}`
   }
 
-  return `Se une a grupo existente: ${formData.groupName || 'Sin nombre aún'} | Líder del grupo: ${formData.groupLeaderName || 'Pendiente'}`
+  return `Se une a grupo existente: ${selectedExistingGroup?.label || 'Sin nombre aún'} | ID del grupo: ${formData.groupName || 'Pendiente'} | Líder del grupo: ${formData.groupLeaderName || 'Pendiente'}`
+}
+
+function AdminPanel() {
+  const [accessCode, setAccessCode] = useState('')
+  const [isAuthorized, setIsAuthorized] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    return window.sessionStorage.getItem(ADMIN_SESSION_STORAGE_KEY) === 'granted'
+  })
+  const [reservations, setReservations] = useState<AdminReservationRecord[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isAuthorized || !supabase) {
+      return
+    }
+
+    let isCancelled = false
+    const supabaseClient = supabase
+
+    async function loadReservations() {
+      setIsLoading(true)
+      setErrorMessage('')
+
+      const { data, error } = await supabaseClient.rpc('get_wedding_admin_reservations')
+
+      if (isCancelled) {
+        return
+      }
+
+      if (error) {
+        setErrorMessage('No pudimos cargar las reservas en este momento.')
+        setIsLoading(false)
+        return
+      }
+
+      const nextReservations = ((data ?? []) as AdminReservationRecord[]).map((reservation) => ({
+        ...reservation,
+        attendees_json: resolveStoredAttendees(reservation.attendees_json, {
+          reservationId: reservation.id,
+          fullName: reservation.full_name,
+          identityDocument: reservation.identity_document,
+          phone: reservation.phone,
+          allergies: reservation.allergies,
+        }),
+      }))
+
+      setReservations(nextReservations)
+      setSelectedReservationId((current) => current ?? nextReservations[0]?.id ?? null)
+      setLastUpdated(new Date().toISOString())
+      setIsLoading(false)
+    }
+
+    void loadReservations()
+    const intervalId = window.setInterval(() => {
+      void loadReservations()
+    }, 10000)
+
+    return () => {
+      isCancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [isAuthorized])
+
+  const filteredReservations = reservations.filter((reservation) => {
+    const searchableText = [
+      reservation.invitation_code,
+      reservation.invitation_label,
+      reservation.full_name,
+      reservation.group_label,
+      reservation.room,
+      reservation.attendees_json?.map((guest) => guest.fullName || guest.name).join(' '),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+
+    return searchableText.includes(searchTerm.trim().toLowerCase())
+  })
+
+  const selectedReservation =
+    filteredReservations.find((reservation) => reservation.id === selectedReservationId) ??
+    filteredReservations[0] ??
+    null
+
+  const confirmedPeople = reservations.reduce((total, reservation) => total + (reservation.number_of_people ?? 0), 0)
+  const createdGroups = reservations.filter((reservation) => reservation.travel_group_mode === 'create').length
+  const joiningGroups = reservations.filter((reservation) => reservation.travel_group_mode === 'join').length
+
+  function handleAccessSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (accessCode.trim() !== adminAccessKey) {
+      setErrorMessage('La clave no es correcta. Intenta de nuevo.')
+      return
+    }
+
+    window.sessionStorage.setItem(ADMIN_SESSION_STORAGE_KEY, 'granted')
+    setErrorMessage('')
+    setIsAuthorized(true)
+  }
+
+  function handleLogout() {
+    window.sessionStorage.removeItem(ADMIN_SESSION_STORAGE_KEY)
+    setIsAuthorized(false)
+    setAccessCode('')
+    setReservations([])
+    setSelectedReservationId(null)
+  }
+
+  if (!isAuthorized) {
+    return (
+      <main className="admin-shell">
+        <section className="admin-login-card">
+          <p className="eyebrow">Panel privado</p>
+          <h1>Reservas de Laura y Juan</h1>
+          <p className="admin-login-copy">
+            Esta vista es solo para ustedes. Ingresen la clave privada para ver las confirmaciones y el avance de las reservas.
+          </p>
+          <form className="admin-login-form" onSubmit={handleAccessSubmit}>
+            <label>
+              Clave privada
+              <input
+                onChange={(event) => setAccessCode(event.target.value)}
+                placeholder="Ingresa la clave"
+                type="password"
+                value={accessCode}
+              />
+            </label>
+            {errorMessage ? <p className="form-feedback is-error">{errorMessage}</p> : null}
+            <button className="primary-button" type="submit">
+              Entrar al panel
+            </button>
+          </form>
+        </section>
+      </main>
+    )
+  }
+
+  return (
+    <main className="admin-shell">
+      <section className="admin-hero">
+        <div>
+          <p className="eyebrow">Panel privado</p>
+          <h1>Reservas en tiempo real</h1>
+          <p className="admin-subcopy">
+            Aquí pueden ver quién ya confirmó, cómo se está organizando cada invitación y los cambios más recientes.
+          </p>
+        </div>
+        <div className="admin-hero-actions">
+          <span className="admin-updated-at">Última actualización: {formatAdminDateTime(lastUpdated)}</span>
+          <button className="secondary-button" onClick={handleLogout} type="button">
+            Cerrar panel
+          </button>
+        </div>
+      </section>
+
+      <section className="admin-stats-grid">
+        <article className="admin-stat-card">
+          <span className="meta-label">Reservas</span>
+          <strong>{reservations.length}</strong>
+          <p>invitaciones con información guardada</p>
+        </article>
+        <article className="admin-stat-card">
+          <span className="meta-label">Personas confirmadas</span>
+          <strong>{confirmedPeople}</strong>
+          <p>asistentes registrados hasta ahora</p>
+        </article>
+        <article className="admin-stat-card">
+          <span className="meta-label">Grupos creados</span>
+          <strong>{createdGroups}</strong>
+          <p>invitaciones anfitrionas de hospedaje</p>
+        </article>
+        <article className="admin-stat-card">
+          <span className="meta-label">Invitaciones unidas</span>
+          <strong>{joiningGroups}</strong>
+          <p>familias que comparten grupo con otros invitados</p>
+        </article>
+      </section>
+
+      <section className="admin-panel-grid">
+        <aside className="admin-sidebar-card">
+          <div className="admin-sidebar-head">
+            <strong>Reservas</strong>
+            <input
+              className="admin-search"
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar por nombre, código o grupo"
+              value={searchTerm}
+            />
+          </div>
+          {isLoading ? <p className="availability-note">Actualizando reservas...</p> : null}
+          {errorMessage && isAuthorized ? <p className="availability-note is-error">{errorMessage}</p> : null}
+          <div className="admin-reservations-list">
+            {filteredReservations.map((reservation) => (
+              <button
+                className={`admin-reservation-item ${selectedReservation?.id === reservation.id ? 'is-active' : ''}`}
+                key={reservation.id}
+                onClick={() => setSelectedReservationId(reservation.id)}
+                type="button"
+              >
+                <span className="meta-label">{reservation.invitation_code ?? 'Sin código'}</span>
+                <strong>{reservation.invitation_label ?? reservation.full_name ?? 'Reserva sin nombre'}</strong>
+                <span>
+                  {reservation.number_of_people ?? 0} persona(s) · {reservation.room ?? 'Sin habitación'}
+                </span>
+              </button>
+            ))}
+            {!filteredReservations.length && !isLoading ? (
+              <p className="availability-note">Aún no hay reservas que coincidan con la búsqueda.</p>
+            ) : null}
+          </div>
+        </aside>
+
+        <section className="admin-detail-card">
+          {selectedReservation ? (
+            <>
+              <div className="admin-detail-head">
+                <div>
+                  <p className="eyebrow">Detalle</p>
+                  <h2>{selectedReservation.invitation_label ?? 'Reserva sin etiqueta'}</h2>
+                  <p className="admin-subcopy">
+                    Código {selectedReservation.invitation_code ?? 'Sin código'} · Guardada el{' '}
+                    {formatAdminDateTime(selectedReservation.created_at)}
+                  </p>
+                </div>
+                <span className="admin-mode-pill">
+                  {selectedReservation.travel_group_mode === 'create'
+                    ? 'Crea grupo'
+                    : selectedReservation.travel_group_mode === 'join'
+                      ? 'Se une a grupo'
+                      : 'Reserva individual'}
+                </span>
+              </div>
+
+              <div className="admin-summary-grid">
+                <article className="admin-summary-card">
+                  <span className="meta-label">Contacto principal</span>
+                  <strong>{selectedReservation.full_name ?? 'Sin nombre'}</strong>
+                  <p>{selectedReservation.phone ?? 'Sin teléfono'}</p>
+                  <p>ID: {selectedReservation.identity_document ?? 'Sin documento'}</p>
+                </article>
+                <article className="admin-summary-card">
+                  <span className="meta-label">Hospedaje</span>
+                  <strong>{selectedReservation.room ?? 'Sin habitación'}</strong>
+                  <p>{selectedReservation.number_of_nights ?? 0} noche(s)</p>
+                  <p>
+                    {formatAdminDate(selectedReservation.check_in_date)} al{' '}
+                    {formatAdminDate(selectedReservation.check_out_date)}
+                  </p>
+                </article>
+                <article className="admin-summary-card">
+                  <span className="meta-label">Grupo</span>
+                  <strong>{selectedReservation.group_label ?? 'Sin grupo compartido'}</strong>
+                  <p>ID grupo: {selectedReservation.group_id ?? 'No aplica'}</p>
+                  <p>Capacidad: {selectedReservation.group_capacity ?? 0}</p>
+                </article>
+              </div>
+
+              <div className="admin-attendees-card">
+                <div className="flow-card-heading">
+                  <span className="meta-label">Asistentes</span>
+                  <strong>{selectedReservation.attendees_json?.length ?? 0} persona(s) registradas</strong>
+                </div>
+                <div className="admin-attendees-grid">
+                  {(selectedReservation.attendees_json ?? []).map((guest) => (
+                    <article className="admin-attendee-card" key={guest.id}>
+                      <strong>
+                        {guest.fullName || guest.name}
+                        {guest.isPrimaryContact ? ' · contacto principal' : ''}
+                      </strong>
+                      <p>ID: {guest.identityDocument || 'Sin documento'}</p>
+                      <p>Tel: {guest.phone || 'Sin teléfono'}</p>
+                      <p>Correo: {guest.email || 'Sin correo'}</p>
+                      <p>Alergias: {guest.hasAllergies ? guest.allergies || 'Sí, sin detalle' : 'No reporta'}</p>
+                    </article>
+                  ))}
+                  {!selectedReservation.attendees_json?.length ? (
+                    <p className="availability-note">Esta reserva todavía no tiene asistentes estructurados guardados.</p>
+                  ) : null}
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="availability-note">Selecciona una reserva para ver el detalle.</p>
+          )}
+        </section>
+      </section>
+    </main>
+  )
 }
 
 function App() {
+  if (isAdminRoute()) {
+    return <AdminPanel />
+  }
+
   const [countdown, setCountdown] = useState<Countdown>(() => getCountdown(weddingDate))
   const [isRsvpOpen, setIsRsvpOpen] = useState(false)
   const [isInfoOpen, setIsInfoOpen] = useState(false)
@@ -497,12 +933,11 @@ function App() {
   const [visiblePortraits, setVisiblePortraits] = useState(() => (window.innerWidth <= 900 ? 1 : 3))
   const [activeInvitation] = useState<InvitationPreset>(() => getInvitationFromSearch())
   const [familyMembers, setFamilyMembers] = useState<InvitationMember[]>(() => createMembers(getInvitationFromSearch()))
-  const [formData, setFormData] = useState<RsvpFormData>({
-    ...initialFormData,
-    fullName: getInvitationFromSearch().members[0] ?? '',
-  })
+  const [formData, setFormData] = useState<RsvpFormData>(() => buildInitialFormData(getInvitationFromSearch()))
   const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
   const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [isEditingReservation, setIsEditingReservation] = useState(false)
+  const [isReservationLoading, setIsReservationLoading] = useState(false)
   const [reservedRoomsByLabel, setReservedRoomsByLabel] = useState<Record<string, number>>({})
   const [existingGroups, setExistingGroups] = useState<ExistingGroupOption[]>([])
   const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false)
@@ -533,7 +968,7 @@ function App() {
       : null
   const availableLodgingOptions = lodgingOptions.filter((option) => {
     const reservedCount = reservedRoomsByLabel[option.label] ?? 0
-    return option.capacity >= requiredLodgingCapacity && reservedCount < option.totalRooms
+    return option.capacity >= requiredLodgingCapacity && (reservedCount < option.totalRooms || option.label === formData.room)
   })
   const selectedPricePerPerson =
     selectedRoomOption && selectedNightCount ? selectedRoomOption.pricesByNight[selectedNightCount] : null
@@ -545,6 +980,10 @@ function App() {
     formData.travelGroupMode === 'join'
       ? existingGroups.find((group) => group.id === formData.groupName) ?? null
       : null
+  const isSelectedExistingGroupFull =
+    selectedExistingGroup !== null &&
+    selectedExistingGroup.capacity > 0 &&
+    selectedExistingGroup.reservedPeople >= selectedExistingGroup.capacity
   const maxPortraitIndex = Math.max(lovePortraits.length - visiblePortraits, 0)
 
   useEffect(() => {
@@ -650,8 +1089,7 @@ function App() {
       setAvailabilityError('')
 
       const { data, error } = await supabaseClient
-        .from('wedding_rsvps')
-        .select('room, description')
+        .rpc('get_wedding_availability')
 
       if (isCancelled) {
         return
@@ -667,35 +1105,76 @@ function App() {
       const nextReservedRoomsByLabel: Record<string, number> = {}
       const nextExistingGroups = new Map<string, ExistingGroupOption>()
 
-      for (const storedGroup of readStoredGroups()) {
-        nextExistingGroups.set(storedGroup.id, storedGroup)
-      }
-
       for (const row of data ?? []) {
         const roomLabel = typeof row.room === 'string' ? row.room.trim() : ''
-        const description = typeof row.description === 'string' ? row.description : ''
+        const groupId = typeof row.group_id === 'string' ? row.group_id.trim() : ''
+        const groupLabel = typeof row.group_label === 'string' ? row.group_label.trim() : ''
+        const groupLeaderName = typeof row.group_leader_name === 'string' ? row.group_leader_name.trim() : ''
+        const travelGroupMode = typeof row.travel_group_mode === 'string' ? row.travel_group_mode.trim() : ''
+        const groupCapacity =
+          typeof row.group_capacity === 'number' && Number.isFinite(row.group_capacity) ? row.group_capacity : 0
+        const rowPeopleCount =
+          typeof row.number_of_people === 'number' && Number.isFinite(row.number_of_people) ? row.number_of_people : 0
 
-        if (!roomLabel) {
-          const parsedGroup = parseCreatedGroup(description)
+        if (roomLabel) {
+          nextReservedRoomsByLabel[roomLabel] = (nextReservedRoomsByLabel[roomLabel] ?? 0) + 1
+        }
 
-          if (parsedGroup) {
-            nextExistingGroups.set(parsedGroup.id, parsedGroup)
-          }
+        if (travelGroupMode === 'create' && groupId && groupLabel) {
+          const currentGroup = nextExistingGroups.get(groupId)
 
+          nextExistingGroups.set(groupId, {
+            id: groupId,
+            label: groupLabel,
+            leaderName: groupLeaderName || currentGroup?.leaderName || 'Pendiente',
+            capacity: groupCapacity || currentGroup?.capacity || 0,
+            reservedPeople: currentGroup?.reservedPeople ?? rowPeopleCount,
+            room: roomLabel || currentGroup?.room || '',
+            numberOfNights:
+              typeof row.number_of_nights === 'number' && Number.isFinite(row.number_of_nights)
+                ? row.number_of_nights
+                : currentGroup?.numberOfNights ?? 0,
+            checkInDate:
+              typeof row.check_in_date === 'string' && row.check_in_date.trim()
+                ? row.check_in_date
+                : currentGroup?.checkInDate ?? '',
+            checkOutDate:
+              typeof row.check_out_date === 'string' && row.check_out_date.trim()
+                ? row.check_out_date
+                : currentGroup?.checkOutDate ?? '',
+            arrivalTime:
+              typeof row.arrival_time === 'string' && row.arrival_time.trim()
+                ? row.arrival_time
+                : currentGroup?.arrivalTime ?? '',
+            departureTime:
+              typeof row.departure_time === 'string' && row.departure_time.trim()
+                ? row.departure_time
+                : currentGroup?.departureTime ?? '',
+            boardingPoint:
+              typeof row.boarding_point === 'string' && row.boarding_point.trim()
+                ? row.boarding_point
+                : currentGroup?.boardingPoint ?? '',
+          })
           continue
         }
 
-        nextReservedRoomsByLabel[roomLabel] = (nextReservedRoomsByLabel[roomLabel] ?? 0) + 1
+        if (travelGroupMode === 'join' && groupId && rowPeopleCount > 0) {
+          const currentGroup = nextExistingGroups.get(groupId)
 
-        const parsedGroup = parseCreatedGroup(description)
-
-        if (parsedGroup) {
-          nextExistingGroups.set(parsedGroup.id, parsedGroup)
+          if (currentGroup) {
+            nextExistingGroups.set(groupId, {
+              ...currentGroup,
+              reservedPeople: currentGroup.reservedPeople + rowPeopleCount,
+            })
+          }
         }
       }
 
+      const nextGroups = Array.from(nextExistingGroups.values())
+
       setReservedRoomsByLabel(nextReservedRoomsByLabel)
-      setExistingGroups(Array.from(nextExistingGroups.values()))
+      setExistingGroups(nextGroups)
+      writeStoredGroups(nextGroups)
       setIsAvailabilityLoading(false)
     }
 
@@ -705,6 +1184,131 @@ function App() {
       isCancelled = true
     }
   }, [isRsvpOpen])
+
+  useEffect(() => {
+    if (!isRsvpOpen || !isKnownInvitation || !supabase) {
+      if (!supabase || !isKnownInvitation) {
+        setIsReservationLoading(false)
+      }
+      return
+    }
+
+    let isCancelled = false
+    const supabaseClient = supabase
+
+    async function loadExistingReservation() {
+      setIsReservationLoading(true)
+
+      const { data, error } = await supabaseClient.rpc('get_wedding_rsvp_by_invitation', {
+        invitation_code_param: activeInvitation.code,
+      })
+
+      if (isCancelled) {
+        return
+      }
+
+      if (error) {
+        setFamilyMembers(createMembers(activeInvitation))
+        setFormData(buildInitialFormData(activeInvitation))
+        setIsEditingReservation(false)
+        setIsReservationLoading(false)
+        return
+      }
+
+      const savedReservation = (Array.isArray(data) ? data[0] : data) as SavedRsvpRecord | null
+
+      if (!savedReservation) {
+        setFamilyMembers(createMembers(activeInvitation))
+        setFormData(buildInitialFormData(activeInvitation))
+        setIsEditingReservation(false)
+        setIsReservationLoading(false)
+        return
+      }
+
+      const storedAttendeesFromDb = resolveStoredAttendees(savedReservation.attendees_json, {
+        reservationId: savedReservation.invitation_code,
+        fullName: savedReservation.full_name,
+        identityDocument: savedReservation.identity_document,
+        phone: savedReservation.phone,
+        allergies: savedReservation.allergies,
+      })
+      const storedAttendees = storedAttendeesFromDb
+      const nextMembers = createMembers(activeInvitation).map((member, index) => {
+        const storedMember =
+          storedAttendees.find((candidate) => candidate.id === member.id) ??
+          storedAttendees.find((candidate) => candidate.name.trim().toLowerCase() === member.name.trim().toLowerCase())
+
+        if (!storedMember) {
+          return member
+        }
+
+        return {
+          ...member,
+          attending: true,
+          fullName: storedMember.fullName || member.fullName,
+          identityDocument: storedMember.identityDocument || '',
+          phone: storedMember.phone || '',
+          email: storedMember.email || '',
+          hasAllergies: storedMember.hasAllergies,
+          allergies: storedMember.allergies || '',
+          isPrimaryContact:
+            storedMember.isPrimaryContact ||
+            (!storedAttendees.some((candidate) => candidate.isPrimaryContact) && index === 0),
+        }
+      })
+
+      const hasPrimaryContact = nextMembers.some((member) => member.attending && member.isPrimaryContact)
+
+      const normalizedMembers = hasPrimaryContact
+        ? nextMembers
+        : nextMembers.map((member, index) => ({
+            ...member,
+            isPrimaryContact: member.attending ? index === nextMembers.findIndex((candidate) => candidate.attending) : false,
+          }))
+
+      setFamilyMembers(normalizedMembers)
+      const nextFormData = {
+        ...buildInitialFormData(activeInvitation),
+        fullName: savedReservation.full_name?.trim() || activeInvitation.members[0] || '',
+        identityDocument: savedReservation.identity_document?.trim() || '',
+        phone: savedReservation.phone?.trim() || '',
+        travelGroupMode: savedReservation.travel_group_mode || 'individual',
+        groupName:
+          savedReservation.travel_group_mode === 'create'
+            ? savedReservation.group_label?.trim() || ''
+            : savedReservation.travel_group_mode === 'join'
+              ? savedReservation.group_id?.trim() || ''
+              : '',
+        groupLeaderName: savedReservation.group_leader_name?.trim() || '',
+        sharedInvitationsEstimate:
+          savedReservation.group_capacity != null
+            ? String(savedReservation.group_capacity)
+            : '',
+        room: savedReservation.room?.trim() || '',
+        numberOfNights:
+          savedReservation.number_of_nights != null
+            ? String(savedReservation.number_of_nights)
+            : '',
+        checkInDate: savedReservation.check_in_date || '',
+        checkOutDate: savedReservation.check_out_date || '',
+        arrivalTime: savedReservation.arrival_time || '',
+        departureTime: savedReservation.departure_time || '',
+        boardingPoint: savedReservation.boarding_point?.trim() || '',
+        allergies: savedReservation.allergies?.trim() || '',
+        notes: savedReservation.notes?.trim() || '',
+      }
+
+      setFormData(nextFormData)
+      setIsEditingReservation(true)
+      setIsReservationLoading(false)
+    }
+
+    loadExistingReservation()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [activeInvitation, isKnownInvitation, isRsvpOpen, supabase])
 
   useEffect(() => {
     if (!formData.room) {
@@ -724,6 +1328,10 @@ function App() {
   }, [availableLodgingOptions, formData.room])
 
   function openRsvpModal() {
+    setFamilyMembers(createMembers(activeInvitation))
+    setFormData(buildInitialFormData(activeInvitation))
+    setIsEditingReservation(false)
+    setIsReservationLoading(Boolean(supabase) && isKnownInvitation)
     setIsRsvpOpen(true)
     setSubmitState('idle')
     setFeedbackMessage('')
@@ -893,6 +1501,7 @@ function App() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const wasEditingReservation = isEditingReservation
 
     if (attendingCount === 0) {
       setSubmitState('error')
@@ -933,6 +1542,12 @@ function App() {
     if (formData.travelGroupMode === 'join' && !selectedExistingGroup) {
       setSubmitState('error')
       setFeedbackMessage('Selecciona uno de los grupos creados previamente para unirte.')
+      return
+    }
+
+    if (formData.travelGroupMode === 'join' && isSelectedExistingGroupFull) {
+      setSubmitState('error')
+      setFeedbackMessage('Ese grupo ya completó su cupo y no admite más personas.')
       return
     }
 
@@ -1016,7 +1631,7 @@ function App() {
           `Miembros: ${membersSummary}`,
           `Datos asistentes: ${attendingMembersDetails}`,
           `Modo de hospedaje: ${travelGroupOptions.find((option) => option.value === formData.travelGroupMode)?.title ?? 'Sin definir'}`,
-          buildGroupSummary(formData, activeInvitation.code, principalContactName),
+          buildGroupSummary(formData, activeInvitation.code, principalContactName, selectedExistingGroup),
           requiresOwnLodgingDetails && selectedRoomOption ? `Habitación seleccionada: ${selectedRoomOption.label}` : '',
           requiresOwnLodgingDetails && selectedNightCount ? `Noches: ${selectedNightCount}` : '',
           requiresOwnLodgingDetails && selectedPricePerPerson
@@ -1031,6 +1646,28 @@ function App() {
         ? formData.room.trim() || null
         : selectedGroupLodgingDetails?.room || null,
       number_of_people: attendingCount,
+      invitation_code: activeInvitation.code,
+      invitation_label: activeInvitation.label,
+      travel_group_mode: formData.travelGroupMode,
+      group_id:
+        formData.travelGroupMode === 'create'
+          ? generateGroupCode(activeInvitation.code, formData.groupName)
+          : formData.travelGroupMode === 'join'
+            ? formData.groupName
+            : null,
+      group_label:
+        formData.travelGroupMode === 'create'
+          ? formData.groupName.trim()
+          : formData.travelGroupMode === 'join'
+            ? selectedExistingGroup?.label ?? null
+            : null,
+      group_leader_name:
+        formData.travelGroupMode === 'create'
+          ? formData.groupLeaderName.trim() || principalContactName
+          : formData.travelGroupMode === 'join'
+            ? selectedExistingGroup?.leaderName ?? null
+            : null,
+      group_capacity: formData.travelGroupMode === 'create' ? Number(formData.sharedInvitationsEstimate) || null : null,
       number_of_nights: requiresOwnLodgingDetails
         ? Number(formData.numberOfNights)
         : selectedGroupLodgingDetails?.numberOfNights ?? null,
@@ -1049,6 +1686,18 @@ function App() {
       boarding_point: requiresOwnLodgingDetails
         ? formData.boardingPoint.trim() || null
         : selectedGroupLodgingDetails?.boardingPoint || null,
+      attendees_json: attendingMembers.map((member) => ({
+        id: member.id,
+        name: member.name,
+        attending: true,
+        fullName: member.fullName.trim(),
+        identityDocument: member.identityDocument.trim(),
+        phone: member.phone.trim(),
+        email: member.email.trim(),
+        hasAllergies: member.hasAllergies,
+        allergies: member.hasAllergies ? member.allergies.trim() : '',
+        isPrimaryContact: member.isPrimaryContact,
+      })),
       allergies:
         attendingMembers
           .map((member) => `${member.fullName.trim()}: ${member.hasAllergies ? member.allergies.trim() : 'No reporta'}`)
@@ -1064,11 +1713,13 @@ function App() {
           .join(' | ') || null,
     }
 
-    const { error } = await supabase.from('wedding_rsvps').insert(payload)
+    const { error } = await supabase.rpc('upsert_wedding_rsvp', {
+      rsvp_payload: payload,
+    })
 
     if (error) {
       setSubmitState('error')
-      setFeedbackMessage('No se pudo guardar la información. Revisa la configuración de Supabase.')
+      setFeedbackMessage(`No se pudo guardar la información. ${error.message}`)
       return
     }
 
@@ -1077,6 +1728,8 @@ function App() {
         id: generateGroupCode(activeInvitation.code, formData.groupName),
         label: formData.groupName.trim(),
         leaderName: formData.groupLeaderName.trim() || principalContactName,
+        capacity: Number(formData.sharedInvitationsEstimate) || 0,
+        reservedPeople: attendingCount,
         room: formData.room.trim(),
         numberOfNights: Number(formData.numberOfNights),
         checkInDate: formData.checkInDate,
@@ -1099,13 +1752,13 @@ function App() {
       setExistingGroups(nextStoredGroups)
     }
 
+    setIsEditingReservation(true)
     setSubmitState('success')
-    setFeedbackMessage('La confirmación de esta invitación fue registrada con éxito.')
-    setFamilyMembers(createMembers(activeInvitation))
-    setFormData({
-      ...initialFormData,
-      fullName: activeInvitation.members[0] ?? '',
-    })
+    setFeedbackMessage(
+      wasEditingReservation
+        ? 'Los cambios de esta invitación fueron actualizados con éxito.'
+        : 'La confirmación de esta invitación fue registrada con éxito. Desde ahora puedes editarla aquí mismo.',
+    )
   }
 
   return (
@@ -1355,6 +2008,13 @@ function App() {
             </button>
             <p className="eyebrow">Confirmación</p>
             <h2 id="rsvp-title">{activeInvitation.label}</h2>
+            <p className="availability-note">
+              {isReservationLoading
+                ? 'Estamos buscando si esta invitación ya tenía una reserva guardada...'
+                : isEditingReservation
+                  ? 'Ya habías confirmado esta invitación. Aquí puedes editar tu información y guardar cambios.'
+                  : 'Completa la información de esta invitación para guardar tu reserva por primera vez.'}
+            </p>
 
             <form className="rsvp-form" onSubmit={handleSubmit}>
               <div className="full-span form-section-card is-soft">
@@ -1549,8 +2209,18 @@ function App() {
                         <select name="groupName" onChange={handleInputChange} required value={formData.groupName}>
                           <option value="">Selecciona un grupo creado</option>
                           {existingGroups.map((group) => (
-                            <option key={group.id} value={group.id}>
+                            <option
+                              disabled={group.capacity > 0 && group.reservedPeople >= group.capacity}
+                              key={group.id}
+                              value={group.id}
+                            >
                               {group.label} · {group.id}
+                              {group.capacity > 0
+                                ? ` · ${group.reservedPeople}/${group.capacity} personas`
+                                : ''}
+                              {group.capacity > 0 && group.reservedPeople >= group.capacity
+                                ? ' · Cupo completo'
+                                : ''}
                             </option>
                           ))}
                         </select>
@@ -1561,6 +2231,12 @@ function App() {
                   {formData.travelGroupMode === 'join' && existingGroups.length === 0 ? (
                     <p className="availability-note is-empty">
                       Aún no hay grupos creados para unirse. Primero debe existir al menos un grupo anfitrión.
+                    </p>
+                  ) : null}
+
+                  {formData.travelGroupMode === 'join' && isSelectedExistingGroupFull ? (
+                    <p className="availability-note is-empty">
+                      Este grupo ya alcanzó su capacidad máxima y no admite más personas.
                     </p>
                   ) : null}
 
@@ -1843,10 +2519,16 @@ function App() {
                 </button>
                 <button
                   className="primary-button"
-                  disabled={submitState === 'submitting' || attendingCount === 0}
+                  disabled={submitState === 'submitting' || attendingCount === 0 || isReservationLoading}
                   type="submit"
                 >
-                  {submitState === 'submitting' ? 'Guardando...' : 'Guardar'}
+                  {submitState === 'submitting'
+                    ? isEditingReservation
+                      ? 'Guardando cambios...'
+                      : 'Guardando...'
+                    : isEditingReservation
+                      ? 'Guardar cambios'
+                      : 'Guardar reserva'}
                 </button>
               </div>
             </form>

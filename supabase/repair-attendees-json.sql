@@ -1,52 +1,5 @@
-create extension if not exists pgcrypto;
-
-create table if not exists public.wedding_rsvps (
-  id uuid primary key default gen_random_uuid(),
-  full_name text not null,
-  identity_document text not null,
-  phone text not null,
-  invitation_code text,
-  invitation_label text,
-  description text,
-  travel_group_mode text,
-  group_id text,
-  group_label text,
-  group_leader_name text,
-  group_capacity integer,
-  room text,
-  number_of_people integer not null check (number_of_people > 0),
-  number_of_nights integer not null check (number_of_nights > 0),
-  check_in_date date not null,
-  check_out_date date not null,
-  arrival_time time,
-  departure_time time,
-  boarding_point text,
-  attendees_json jsonb,
-  allergies text,
-  notes text,
-  created_at timestamptz not null default now()
-);
-
-alter table public.wedding_rsvps enable row level security;
-
-create policy "Allow anonymous inserts for wedding RSVPs"
-on public.wedding_rsvps
-for insert
-to anon
-with check (true);
-
-create policy "Allow anonymous updates for wedding RSVPs"
-on public.wedding_rsvps
-for update
-to anon
-using (true)
-with check (true);
-
-create policy "Allow authenticated users to read RSVPs"
-on public.wedding_rsvps
-for select
-to authenticated
-using (true);
+alter table public.wedding_rsvps
+add column if not exists attendees_json jsonb;
 
 create unique index if not exists wedding_rsvps_invitation_code_key
 on public.wedding_rsvps (invitation_code)
@@ -152,15 +105,6 @@ $$;
 
 revoke all on function public.upsert_wedding_rsvp(jsonb) from public;
 grant execute on function public.upsert_wedding_rsvp(jsonb) to anon, authenticated;
-
-alter table public.wedding_rsvps add column if not exists invitation_code text;
-alter table public.wedding_rsvps add column if not exists invitation_label text;
-alter table public.wedding_rsvps add column if not exists travel_group_mode text;
-alter table public.wedding_rsvps add column if not exists group_id text;
-alter table public.wedding_rsvps add column if not exists group_label text;
-alter table public.wedding_rsvps add column if not exists group_leader_name text;
-alter table public.wedding_rsvps add column if not exists group_capacity integer;
-alter table public.wedding_rsvps add column if not exists attendees_json jsonb;
 
 create or replace function public.get_wedding_rsvp_by_invitation(invitation_code_param text)
 returns table (
@@ -277,67 +221,11 @@ $$;
 revoke all on function public.get_wedding_admin_reservations() from public;
 grant execute on function public.get_wedding_admin_reservations() to anon, authenticated;
 
-create or replace function public.get_wedding_availability()
-returns table (
-  room text,
-  number_of_people integer,
-  number_of_nights integer,
-  check_in_date date,
-  check_out_date date,
-  arrival_time time,
-  departure_time time,
-  boarding_point text,
-  travel_group_mode text,
-  group_id text,
-  group_label text,
-  group_leader_name text,
-  group_capacity integer
-)
-language sql
-security definer
-set search_path = public
-as $$
-  select
-    room,
-    number_of_people,
-    number_of_nights,
-    check_in_date,
-    check_out_date,
-    arrival_time,
-    departure_time,
-    boarding_point,
-    travel_group_mode,
-    group_id,
-    group_label,
-    group_leader_name,
-    group_capacity
-  from public.wedding_rsvps;
-$$;
+notify pgrst, 'reload schema';
 
-revoke all on function public.get_wedding_availability() from public;
-grant execute on function public.get_wedding_availability() to anon, authenticated;
-
-create table if not exists public.song_suggestions (
-  id uuid primary key default gen_random_uuid(),
-  invitation_code text,
-  invitation_label text,
-  guest_name text not null,
-  song_name text not null,
-  artist_name text not null,
-  song_link text,
-  created_at timestamptz not null default now()
-);
-
-alter table public.song_suggestions enable row level security;
-
-create policy "Allow anonymous inserts for song suggestions"
-on public.song_suggestions
-for insert
-to anon
-with check (true);
-
-create policy "Allow authenticated users to read song suggestions"
-on public.song_suggestions
-for select
-to authenticated
-using (true);
+select
+  invitation_code,
+  invitation_label,
+  attendees_json
+from public.wedding_rsvps
+order by created_at desc;
