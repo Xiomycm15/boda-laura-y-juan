@@ -1200,6 +1200,10 @@ function App() {
       ? Number(formData.sharedInvitationsEstimate)
       : attendingCount
   const requiredLodgingCapacity = formData.travelGroupMode === 'create' ? estimatedGroupCapacity : attendingCount
+  const selectedExistingGroup =
+    formData.travelGroupMode === 'join'
+      ? existingGroups.find((group) => group.id === formData.groupName) ?? null
+      : null
   const selectedRoomOption = lodgingOptions.find((option) => option.label === formData.room) ?? null
   const selectedNightCount =
     formData.numberOfNights === '1' || formData.numberOfNights === '2' || formData.numberOfNights === '3'
@@ -1220,11 +1224,39 @@ function App() {
   const selectedPricePerPerson =
     selectedRoomOption && selectedNightCount ? selectedRoomOption.pricesByNight[selectedNightCount] : null
   const selectedStayTotal = selectedPricePerPerson ? selectedPricePerPerson * requiredLodgingCapacity : null
-  const paymentPlan = selectedStayTotal
+  const selectedExistingGroupNightCount =
+    selectedExistingGroup &&
+    (selectedExistingGroup.numberOfNights === 1 ||
+      selectedExistingGroup.numberOfNights === 2 ||
+      selectedExistingGroup.numberOfNights === 3)
+      ? String(selectedExistingGroup.numberOfNights) as NightCount
+      : null
+  const summaryRoomLabel = formData.travelGroupMode === 'join' ? selectedExistingGroup?.room ?? '' : formData.room
+  const summaryNightCount = formData.travelGroupMode === 'join' ? selectedExistingGroupNightCount : selectedNightCount
+  const summaryRoomOption = lodgingOptions.find((option) => option.label === summaryRoomLabel) ?? null
+  const summaryPeopleCount =
+    formData.travelGroupMode === 'create'
+      ? requiredLodgingCapacity
+      : formData.travelGroupMode === 'join'
+        ? selectedExistingGroup?.capacity ?? null
+        : attendingCount > 0
+          ? attendingCount
+          : null
+  const summaryPricePerPerson =
+    summaryRoomOption && summaryNightCount ? summaryRoomOption.pricesByNight[summaryNightCount] : null
+  const summaryStayTotal = summaryPricePerPerson && summaryPeopleCount ? summaryPricePerPerson * summaryPeopleCount : null
+  const paymentPlan = summaryStayTotal
     ? [
-        { label: '30% hasta el 1 de Octubre de 2026', amount: selectedStayTotal * 0.3 },
-        { label: '30% hasta el 22 de Diciembre de 2026', amount: selectedStayTotal * 0.3 },
-        { label: '40% hasta el 1 de Abril de 2026', amount: selectedStayTotal * 0.4 },
+        { label: '30% hasta el 1 de Octubre de 2026', amount: summaryStayTotal * 0.3 },
+        { label: '30% hasta el 22 de Diciembre de 2026', amount: summaryStayTotal * 0.3 },
+        { label: '40% hasta el 1 de Abril de 2026', amount: summaryStayTotal * 0.4 },
+      ]
+    : []
+  const paymentPlanPerPerson = summaryPricePerPerson
+    ? [
+        { label: '30% hasta el 1 de Octubre de 2026', amount: summaryPricePerPerson * 0.3 },
+        { label: '30% hasta el 22 de Diciembre de 2026', amount: summaryPricePerPerson * 0.3 },
+        { label: '40% hasta el 1 de Abril de 2026', amount: summaryPricePerPerson * 0.4 },
       ]
     : []
   const selectedRemainingRooms = selectedRoomOption
@@ -1237,15 +1269,122 @@ function App() {
         currentInvitationCodeForAvailability,
       )
     : null
-  const selectedExistingGroup =
-    formData.travelGroupMode === 'join'
-      ? existingGroups.find((group) => group.id === formData.groupName) ?? null
-      : null
   const isSelectedExistingGroupFull =
     selectedExistingGroup !== null &&
     selectedExistingGroup.capacity > 0 &&
     selectedExistingGroup.reservedPeople >= selectedExistingGroup.capacity
   const maxPortraitIndex = Math.max(lovePortraits.length - visiblePortraits, 0)
+
+  async function loadAvailabilityData() {
+    if (!supabase) {
+      setAvailabilityEntries([])
+      setExistingGroups([])
+      return
+    }
+
+    const supabaseClient = supabase
+
+    setIsAvailabilityLoading(true)
+    setAvailabilityError('')
+
+    const { data, error } = await supabaseClient.rpc('get_wedding_availability')
+
+    if (error) {
+      setAvailabilityError('No pudimos validar la disponibilidad en tiempo real. Intenta de nuevo.')
+      setAvailabilityEntries([])
+      setExistingGroups([])
+      setIsAvailabilityLoading(false)
+      return
+    }
+
+    const nextAvailabilityEntries: AvailabilityEntry[] = []
+    const nextExistingGroups = new Map<string, ExistingGroupOption>()
+
+    for (const row of data ?? []) {
+      const roomLabel = typeof row.room === 'string' ? row.room.trim() : ''
+      const groupId = typeof row.group_id === 'string' ? row.group_id.trim() : ''
+      const groupLabel = typeof row.group_label === 'string' ? row.group_label.trim() : ''
+      const groupLeaderName = typeof row.group_leader_name === 'string' ? row.group_leader_name.trim() : ''
+      const travelGroupMode = typeof row.travel_group_mode === 'string' ? row.travel_group_mode.trim() : ''
+      const groupCapacity =
+        typeof row.group_capacity === 'number' && Number.isFinite(row.group_capacity) ? row.group_capacity : 0
+      const rowPeopleCount =
+        typeof row.number_of_people === 'number' && Number.isFinite(row.number_of_people) ? row.number_of_people : 0
+
+      if (
+        countsAsRoomReservation(travelGroupMode as TravelGroupMode | null, roomLabel) &&
+        typeof row.check_in_date === 'string' &&
+        row.check_in_date.trim() &&
+        typeof row.check_out_date === 'string' &&
+        row.check_out_date.trim()
+      ) {
+        nextAvailabilityEntries.push({
+          invitationCode:
+            typeof row.invitation_code === 'string' && row.invitation_code.trim() ? row.invitation_code.trim() : null,
+          room: roomLabel,
+          checkInDate: row.check_in_date,
+          checkOutDate: row.check_out_date,
+          travelGroupMode: travelGroupMode as TravelGroupMode | null,
+        })
+      }
+
+      if (travelGroupMode === 'create' && groupId && groupLabel) {
+        const currentGroup = nextExistingGroups.get(groupId)
+
+        nextExistingGroups.set(groupId, {
+          id: groupId,
+          label: groupLabel,
+          leaderName: groupLeaderName || currentGroup?.leaderName || 'Pendiente',
+          capacity: groupCapacity || currentGroup?.capacity || 0,
+          reservedPeople: currentGroup?.reservedPeople ?? rowPeopleCount,
+          room: roomLabel || currentGroup?.room || '',
+          numberOfNights:
+            typeof row.number_of_nights === 'number' && Number.isFinite(row.number_of_nights)
+              ? row.number_of_nights
+              : currentGroup?.numberOfNights ?? 0,
+          checkInDate:
+            typeof row.check_in_date === 'string' && row.check_in_date.trim()
+              ? row.check_in_date
+              : currentGroup?.checkInDate ?? '',
+          checkOutDate:
+            typeof row.check_out_date === 'string' && row.check_out_date.trim()
+              ? row.check_out_date
+              : currentGroup?.checkOutDate ?? '',
+          arrivalTime:
+            typeof row.arrival_time === 'string' && row.arrival_time.trim()
+              ? row.arrival_time
+              : currentGroup?.arrivalTime ?? '',
+          departureTime:
+            typeof row.departure_time === 'string' && row.departure_time.trim()
+              ? row.departure_time
+              : currentGroup?.departureTime ?? '',
+          boardingPoint:
+            typeof row.boarding_point === 'string' && row.boarding_point.trim()
+              ? row.boarding_point
+              : currentGroup?.boardingPoint ?? '',
+        })
+        continue
+      }
+
+      if (travelGroupMode === 'join' && groupId && rowPeopleCount > 0) {
+        const currentGroup = nextExistingGroups.get(groupId)
+
+        if (currentGroup) {
+          nextExistingGroups.set(groupId, {
+            ...currentGroup,
+            reservedPeople: currentGroup.reservedPeople + rowPeopleCount,
+          })
+        }
+      }
+    }
+
+    const nextGroups = Array.from(nextExistingGroups.values())
+
+    setAvailabilityEntries(nextAvailabilityEntries)
+    setExistingGroups(nextGroups)
+    writeStoredGroups(nextGroups)
+    setIsAvailabilityLoading(false)
+  }
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -1342,121 +1481,7 @@ function App() {
       return
     }
 
-    const supabaseClient = supabase
-    let isCancelled = false
-
-    async function loadReservedRooms() {
-      setIsAvailabilityLoading(true)
-      setAvailabilityError('')
-
-      const { data, error } = await supabaseClient
-        .rpc('get_wedding_availability')
-
-      if (isCancelled) {
-        return
-      }
-
-      if (error) {
-        setAvailabilityError('No pudimos validar la disponibilidad en tiempo real. Intenta de nuevo.')
-        setAvailabilityEntries([])
-        setIsAvailabilityLoading(false)
-        return
-      }
-
-      const nextAvailabilityEntries: AvailabilityEntry[] = []
-      const nextExistingGroups = new Map<string, ExistingGroupOption>()
-
-      for (const row of data ?? []) {
-        const roomLabel = typeof row.room === 'string' ? row.room.trim() : ''
-        const groupId = typeof row.group_id === 'string' ? row.group_id.trim() : ''
-        const groupLabel = typeof row.group_label === 'string' ? row.group_label.trim() : ''
-        const groupLeaderName = typeof row.group_leader_name === 'string' ? row.group_leader_name.trim() : ''
-        const travelGroupMode = typeof row.travel_group_mode === 'string' ? row.travel_group_mode.trim() : ''
-        const groupCapacity =
-          typeof row.group_capacity === 'number' && Number.isFinite(row.group_capacity) ? row.group_capacity : 0
-        const rowPeopleCount =
-          typeof row.number_of_people === 'number' && Number.isFinite(row.number_of_people) ? row.number_of_people : 0
-
-        if (
-          countsAsRoomReservation(travelGroupMode as TravelGroupMode | null, roomLabel) &&
-          typeof row.check_in_date === 'string' &&
-          row.check_in_date.trim() &&
-          typeof row.check_out_date === 'string' &&
-          row.check_out_date.trim()
-        ) {
-          nextAvailabilityEntries.push({
-            invitationCode:
-              typeof row.invitation_code === 'string' && row.invitation_code.trim() ? row.invitation_code.trim() : null,
-            room: roomLabel,
-            checkInDate: row.check_in_date,
-            checkOutDate: row.check_out_date,
-            travelGroupMode: travelGroupMode as TravelGroupMode | null,
-          })
-        }
-
-        if (travelGroupMode === 'create' && groupId && groupLabel) {
-          const currentGroup = nextExistingGroups.get(groupId)
-
-          nextExistingGroups.set(groupId, {
-            id: groupId,
-            label: groupLabel,
-            leaderName: groupLeaderName || currentGroup?.leaderName || 'Pendiente',
-            capacity: groupCapacity || currentGroup?.capacity || 0,
-            reservedPeople: currentGroup?.reservedPeople ?? rowPeopleCount,
-            room: roomLabel || currentGroup?.room || '',
-            numberOfNights:
-              typeof row.number_of_nights === 'number' && Number.isFinite(row.number_of_nights)
-                ? row.number_of_nights
-                : currentGroup?.numberOfNights ?? 0,
-            checkInDate:
-              typeof row.check_in_date === 'string' && row.check_in_date.trim()
-                ? row.check_in_date
-                : currentGroup?.checkInDate ?? '',
-            checkOutDate:
-              typeof row.check_out_date === 'string' && row.check_out_date.trim()
-                ? row.check_out_date
-                : currentGroup?.checkOutDate ?? '',
-            arrivalTime:
-              typeof row.arrival_time === 'string' && row.arrival_time.trim()
-                ? row.arrival_time
-                : currentGroup?.arrivalTime ?? '',
-            departureTime:
-              typeof row.departure_time === 'string' && row.departure_time.trim()
-                ? row.departure_time
-                : currentGroup?.departureTime ?? '',
-            boardingPoint:
-              typeof row.boarding_point === 'string' && row.boarding_point.trim()
-                ? row.boarding_point
-                : currentGroup?.boardingPoint ?? '',
-          })
-          continue
-        }
-
-        if (travelGroupMode === 'join' && groupId && rowPeopleCount > 0) {
-          const currentGroup = nextExistingGroups.get(groupId)
-
-          if (currentGroup) {
-            nextExistingGroups.set(groupId, {
-              ...currentGroup,
-              reservedPeople: currentGroup.reservedPeople + rowPeopleCount,
-            })
-          }
-        }
-      }
-
-      const nextGroups = Array.from(nextExistingGroups.values())
-
-      setAvailabilityEntries(nextAvailabilityEntries)
-      setExistingGroups(nextGroups)
-      writeStoredGroups(nextGroups)
-      setIsAvailabilityLoading(false)
-    }
-
-    loadReservedRooms()
-
-    return () => {
-      isCancelled = true
-    }
+    void loadAvailabilityData()
   }, [isRsvpOpen])
 
   useEffect(() => {
@@ -2032,6 +2057,8 @@ function App() {
       return
     }
 
+    await loadAvailabilityData()
+
     if (formData.travelGroupMode === 'create') {
       const createdGroup: ExistingGroupOption = {
         id: generateGroupCode(activeInvitation.code, formData.groupName),
@@ -2087,11 +2114,7 @@ function App() {
             <span className="ornament" aria-hidden="true"></span>
             <h1>Laura & Juan</h1>
             <p className="hero-quote">
-              “De todas las historias que existen en el mundo, la nuestra es nuestra favorita.”
-            </p>
-            <p className="hero-copy">
-              Queremos invitarte a compartir con nosotros un día lleno de amor, gratitud y
-              recuerdos que atesoraremos para siempre.
+              Después de recorrer muchos caminos juntos, con mucha alegría te invitamos a celebrar el inicio de nuestra nueva aventura.
             </p>
             <div className="hero-meta">
               <div>
@@ -2191,13 +2214,10 @@ function App() {
           </div>
         </section>
 
-        <section className="portraits-section" aria-label="Retratos de nuestro amor">
+        <section className="portraits-section" aria-label="Retratos de Nuestra Historia">
           <div className="section-heading">
-            <p className="eyebrow">Retratos de nuestro amor</p>
-            <h2>Pedacitos de historia que nos trajeron hasta aquí</h2>
-            <p className="portraits-copy">
-              Un recorrido por momentos, viajes y miradas que han hecho aún más bonito este amor.
-            </p>
+            <p className="eyebrow">Retratos de Nuestra Historia</p>
+            <h2>Un recorrido por momentos, viajes y miradas que han hecho aún más bonito este amor.</h2>
           </div>
           <div className="portraits-carousel">
             <button
@@ -2324,7 +2344,12 @@ function App() {
                 ? 'Estamos buscando si esta invitación ya tenía una reserva guardada...'
                 : isEditingReservation
                   ? 'Ya habías confirmado esta invitación. Aquí puedes editar tu información y guardar cambios.'
-                  : 'Completa la información de esta invitación para guardar tu reserva por primera vez.'}
+                  : (
+                    <>
+                      Completa la información de tu invitación. Si necesitas hacer cambios, podrás editarla aquí mismo hasta el{' '}
+                      <strong className="rsvp-deadline-highlight">1 de Agosto</strong>.
+                    </>
+                  )}
             </p>
 
             <form className="rsvp-form" onSubmit={handleSubmit}>
@@ -2336,16 +2361,31 @@ function App() {
                 <div className="member-grid">
                   {familyMembers.map((member) => (
                     <div className="member-stack" key={member.id}>
-                      <div className={`member-card ${member.attending ? 'is-attending' : ''}`}>
-                        <button
-                          aria-label={member.attending ? `Quitar a ${member.name}` : `Marcar a ${member.name}`}
-                          aria-pressed={member.attending}
-                          className={`member-toggle ${member.attending ? 'is-active' : ''}`}
-                          onClick={() => handleMemberAttendanceChange(member.id)}
-                          type="button"
-                        >
-                          <span className="member-toggle-thumb" />
-                        </button>
+                      <div className={`member-card ${member.attending ? 'is-attending' : 'is-not-attending'}`}>
+                        <div className="attendance-choice-group" aria-label={`Confirmación de asistencia para ${member.name}`} role="radiogroup">
+                          <button
+                            aria-checked={member.attending}
+                            className={`attendance-choice attendance-choice-accept ${member.attending ? 'is-selected' : ''}`}
+                            onClick={() => {
+                              if (!member.attending) handleMemberAttendanceChange(member.id)
+                            }}
+                            role="radio"
+                            type="button"
+                          >
+                            <span>Asistiré</span>
+                          </button>
+                          <button
+                            aria-checked={!member.attending}
+                            className={`attendance-choice attendance-choice-decline ${!member.attending ? 'is-selected' : ''}`}
+                            onClick={() => {
+                              if (member.attending) handleMemberAttendanceChange(member.id)
+                            }}
+                            role="radio"
+                            type="button"
+                          >
+                            <span>No asistiré</span>
+                          </button>
+                        </div>
                         <span className="member-card-name">{member.name}</span>
                       </div>
                       {member.attending ? (
@@ -2503,6 +2543,79 @@ function App() {
                     </p>
                   ) : null}
 
+                  {formData.travelGroupMode === 'join' && selectedExistingGroup ? (
+                    <div className="full-span form-section-card">
+                      <div className="form-section-heading">
+                        <span className="meta-label">Hospedaje compartido</span>
+                        <strong>Este grupo ya tiene una reserva anfitriona</strong>
+                      </div>
+
+                      <div className="lodging-grid">
+                        <label>
+                          Habitación
+                          <input readOnly value={selectedExistingGroup.room || 'Pendiente'} />
+                        </label>
+
+                        <label>
+                          Número de noches
+                          <input
+                            readOnly
+                            value={
+                              selectedExistingGroup.numberOfNights
+                                ? `${selectedExistingGroup.numberOfNights} noche(s)`
+                                : 'Pendiente'
+                            }
+                          />
+                        </label>
+
+                        <label>
+                          Fecha de ingreso
+                          <input readOnly value={selectedExistingGroup.checkInDate || 'Pendiente'} />
+                        </label>
+
+                        <label>
+                          Fecha de salida
+                          <input readOnly value={selectedExistingGroup.checkOutDate || 'Pendiente'} />
+                        </label>
+                      </div>
+
+                      {summaryRoomOption && summaryNightCount && summaryPricePerPerson && summaryStayTotal && summaryPeopleCount ? (
+                        <div className="lodging-price-card lodging-price-card--flat">
+                          <span className="meta-label">Resumen de precio</span>
+                          <strong>{summaryRoomOption.label}</strong>
+                          <p>
+                            Esta habitación admite hasta {summaryRoomOption.capacity} persona(s) · Personas dentro del grupo:{' '}
+                            {summaryPeopleCount}
+                          </p>
+                          <p>
+                            Valor por persona para {summaryNightCount} noche(s): {formatCurrency(summaryPricePerPerson)}
+                          </p>
+                          <p>Total estimado del grupo: {formatCurrency(summaryStayTotal)}</p>
+                          <div>
+                            <span className="meta-label">Plan de pagos del grupo</span>
+                            {paymentPlan.map((installment) => (
+                              <p key={installment.label}>
+                                {installment.label}: {formatCurrency(installment.amount)}
+                              </p>
+                            ))}
+                          </div>
+                          <div>
+                            <span className="meta-label">Plan de pagos por persona</span>
+                            {paymentPlanPerPerson.map((installment) => (
+                              <p key={`person-${installment.label}`}>
+                                {installment.label}: {formatCurrency(installment.amount)}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="availability-note">
+                          El grupo seleccionado todavía no tiene completos los datos necesarios para mostrar el resumen del hospedaje.
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
+
                   {formData.travelGroupMode === 'create' ? (
                     <div className="full-span accordion-flow">
                       <details className="accordion-card" open>
@@ -2647,43 +2760,43 @@ function App() {
                         </div>
                       </details>
 
-                      <details className="accordion-card" open>
-                        <summary className="accordion-card-summary">
-                          <span className="meta-label">Resumen final</span>
-                          <strong>Revisa el valor estimado del grupo</strong>
-                        </summary>
-                        <div className="accordion-card-body">
-                          {selectedRoomOption && selectedNightCount && selectedPricePerPerson && selectedStayTotal ? (
-                            <article className="lodging-price-card">
-                              <span className="meta-label">Resumen de precio</span>
-                              <strong>{selectedRoomOption.label}</strong>
-                              <p>
-                                Esta habitación admite hasta {selectedRoomOption.capacity} persona(s) ·{' '}
-                                {formData.travelGroupMode === 'create'
-                                  ? `Personas dentro del grupo: ${requiredLodgingCapacity}`
-                                  : `En esta reserva se hospedarán ${requiredLodgingCapacity}`}
+                      {summaryRoomOption && summaryNightCount && summaryPricePerPerson && summaryStayTotal && summaryPeopleCount ? (
+                        <article className="lodging-price-card">
+                          <span className="meta-label">Resumen de precio</span>
+                          <strong>{summaryRoomOption.label}</strong>
+                          <p>
+                            Esta habitación admite hasta {summaryRoomOption.capacity} persona(s) ·{' '}
+                            {formData.travelGroupMode === 'create'
+                              ? `Personas dentro del grupo: ${summaryPeopleCount}`
+                              : `En esta reserva se hospedarán ${summaryPeopleCount}`}
+                          </p>
+                          <p>
+                            Valor por persona para {summaryNightCount} noche(s):{' '}
+                            {formatCurrency(summaryPricePerPerson)}
+                          </p>
+                          <p>Total estimado del grupo: {formatCurrency(summaryStayTotal)}</p>
+                          <div>
+                            <span className="meta-label">Plan de pagos del grupo</span>
+                            {paymentPlan.map((installment) => (
+                              <p key={installment.label}>
+                                {installment.label}: {formatCurrency(installment.amount)}
                               </p>
-                              <p>
-                                Valor por persona para {selectedNightCount} noche(s):{' '}
-                                {formatCurrency(selectedPricePerPerson)}
+                            ))}
+                          </div>
+                          <div>
+                            <span className="meta-label">Plan de pagos por persona</span>
+                            {paymentPlanPerPerson.map((installment) => (
+                              <p key={`person-${installment.label}`}>
+                                {installment.label}: {formatCurrency(installment.amount)}
                               </p>
-                              <p>Total estimado del grupo: {formatCurrency(selectedStayTotal)}</p>
-                              <div>
-                                <span className="meta-label">Plan de pagos</span>
-                                {paymentPlan.map((installment) => (
-                                  <p key={installment.label}>
-                                    {installment.label}: {formatCurrency(installment.amount)}
-                                  </p>
-                                ))}
-                              </div>
-                            </article>
-                          ) : (
-                            <p className="availability-note">
-                              Completa los datos del hospedaje para ver aquí el resumen final del grupo.
-                            </p>
-                          )}
-                        </div>
-                      </details>
+                            ))}
+                          </div>
+                        </article>
+                      ) : (
+                        <p className="availability-note">
+                          Completa los datos del hospedaje para ver aquí el resumen final del grupo.
+                        </p>
+                      )}
                     </div>
                   ) : null}
 
@@ -2779,20 +2892,28 @@ function App() {
 
                     </div>
 
-                    {selectedRoomOption && selectedNightCount && selectedPricePerPerson && selectedStayTotal ? (
+                    {summaryRoomOption && summaryNightCount && summaryPricePerPerson && summaryStayTotal && summaryPeopleCount ? (
                       <article className="lodging-price-card">
                         <span className="meta-label">Resumen de precio</span>
-                        <strong>{selectedRoomOption.label}</strong>
+                        <strong>{summaryRoomOption.label}</strong>
                         <p>
-                          Esta habitación admite hasta {selectedRoomOption.capacity} persona(s) · En esta reserva se hospedarán{' '}
-                          {requiredLodgingCapacity}
+                          Esta habitación admite hasta {summaryRoomOption.capacity} persona(s) · En esta reserva se hospedarán{' '}
+                          {summaryPeopleCount}
                         </p>
-                        <p>Valor por persona para {selectedNightCount} noche(s): {formatCurrency(selectedPricePerPerson)}</p>
-                        <p>Total estimado del grupo: {formatCurrency(selectedStayTotal)}</p>
+                        <p>Valor por persona para {summaryNightCount} noche(s): {formatCurrency(summaryPricePerPerson)}</p>
+                        <p>Total estimado del grupo: {formatCurrency(summaryStayTotal)}</p>
                         <div>
-                          <span className="meta-label">Plan de pagos</span>
+                          <span className="meta-label">Plan de pagos del grupo</span>
                           {paymentPlan.map((installment) => (
                             <p key={installment.label}>
+                              {installment.label}: {formatCurrency(installment.amount)}
+                            </p>
+                          ))}
+                        </div>
+                        <div>
+                          <span className="meta-label">Plan de pagos por persona</span>
+                          {paymentPlanPerPerson.map((installment) => (
+                            <p key={`person-${installment.label}`}>
                               {installment.label}: {formatCurrency(installment.amount)}
                             </p>
                           ))}

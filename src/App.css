@@ -869,6 +869,19 @@
   line-height: 1.6;
 }
 
+.rsvp-deadline-highlight {
+  display: inline;
+  margin-left: 2px;
+  padding-bottom: 1px;
+  color: #b86f61;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.08em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-bottom: 2px solid rgba(184, 111, 97, 0.35);
+  box-shadow: inset 0 -6px 0 rgba(184, 111, 97, 0.12);
+}
+
 .dress-code-accent {
   font-family: 'Cormorant Garamond', serif;
   font-style: italic;
@@ -1149,6 +1162,68 @@
     opacity 180ms ease;
 }
 
+.attendance-choice-group {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+}
+
+.attendance-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 187, 166, 0.16);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink-strong);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.attendance-choice:hover {
+  box-shadow: 0 8px 20px rgba(127, 187, 166, 0.1);
+}
+
+.attendance-choice:focus-visible {
+  outline: 2px solid rgba(127, 187, 166, 0.35);
+  outline-offset: 2px;
+}
+
+.attendance-choice span {
+  font-size: 0.95rem;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.attendance-choice.is-selected {
+  box-shadow: 0 10px 24px rgba(127, 187, 166, 0.12);
+}
+
+.attendance-choice-accept.is-selected {
+  border-color: rgba(127, 187, 166, 0.52);
+  background: rgba(240, 252, 246, 0.96);
+  color: var(--mint-700);
+}
+
+.attendance-choice-decline.is-selected {
+  border-color: rgba(205, 143, 133, 0.52);
+  background: rgba(255, 244, 242, 0.96);
+  color: #a56b63;
+}
+
 .member-toggle {
   width: 68px;
   height: 38px;
@@ -1184,6 +1259,10 @@
 
 .member-card.is-attending {
   opacity: 1;
+}
+
+.member-card.is-not-attending {
+  opacity: 0.92;
 }
 
 .member-card-name {
@@ -1339,6 +1418,14 @@
   margin-top: 18px;
   border: 1px solid rgba(127, 187, 166, 0.16);
   background: linear-gradient(180deg, rgba(241, 250, 244, 0.92), rgba(255, 251, 245, 0.92));
+}
+
+.lodging-price-card--flat {
+  margin-top: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .lodging-price-card strong {
