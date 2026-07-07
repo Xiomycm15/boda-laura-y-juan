@@ -38,6 +38,7 @@ type InvitationPreset = {
   slug: string
   label: string
   members: string[]
+  isOptional?: boolean
 }
 
 type InvitationMember = {
@@ -120,6 +121,9 @@ type AdminReservationRecord = {
   number_of_nights: number | null
   check_in_date: string | null
   check_out_date: string | null
+  arrival_time: string | null
+  departure_time: string | null
+  boarding_point: string | null
   attendees_json: InvitationMember[] | null
   allergies: string | null
   notes: string | null
@@ -153,6 +157,12 @@ type AvailabilityEntry = {
 const LOCAL_GROUPS_STORAGE_KEY = 'laura-juan-created-groups'
 const ADMIN_SESSION_STORAGE_KEY = 'laura-juan-admin-access'
 const adminAccessKey = import.meta.env.VITE_NOVIOS_PANEL_KEY ?? 'laura-juan-2027'
+const BABY_NOT_APPLICABLE_VALUE = 'No Aplica (bebe)'
+const babyGuestsByInvitationCode: Record<string, string[]> = {
+  'INV-013': ['Sarita'],
+  'INV-016': ['Simón'],
+  'INV-039': ['Emi'],
+}
 
 type RsvpFormData = {
   fullName: string
@@ -229,6 +239,45 @@ const invitationPresets: InvitationPreset[] = [
   { code: 'INV-046', slug: 'santi-sofia', label: 'Santi & Sofía', members: ['Santi', 'Sofía'] },
   { code: 'INV-047', slug: 'rafa-alejandra', label: 'Rafa & Alejandra', members: ['Rafa', 'Alejandra'] },
   { code: 'INV-048', slug: 'juanfe', label: 'JuanFe', members: ['JuanFe'] },
+  {
+    code: 'INV-049',
+    slug: 'manuelish-novio',
+    label: 'Manuelish & Novio',
+    members: ['Manuelish', 'Novio'],
+    isOptional: true,
+  },
+  { code: 'INV-050', slug: 'angelilla', label: 'Angelilla', members: ['Angelilla'], isOptional: true },
+  { code: 'INV-051', slug: 'lini', label: 'Lini', members: ['Lini'], isOptional: true },
+  {
+    code: 'INV-052',
+    slug: 'cami-juan-diego',
+    label: 'Cami & Juan Diego',
+    members: ['Cami', 'Juan Diego'],
+    isOptional: true,
+  },
+  { code: 'INV-053', slug: 'tania', label: 'Tania', members: ['Tania'], isOptional: true },
+  {
+    code: 'INV-054',
+    slug: 'camila-brayan',
+    label: 'Camila & Brayan',
+    members: ['Camila', 'Brayan'],
+    isOptional: true,
+  },
+  {
+    code: 'INV-055',
+    slug: 'maria-paula-santiago',
+    label: 'Maria Paula & Santiago',
+    members: ['Maria Paula', 'Santiago'],
+    isOptional: true,
+  },
+  { code: 'INV-056', slug: 'yeira', label: 'Yeira', members: ['Yeira'], isOptional: true },
+  {
+    code: 'INV-057',
+    slug: 'brayan-esposa',
+    label: 'Brayan & esposa',
+    members: ['Brayan', 'Esposa'],
+    isOptional: true,
+  },
 ]
 
 const initialFormData: RsvpFormData = {
@@ -521,15 +570,38 @@ function getCountdown(targetDate: Date): Countdown {
   }
 }
 
+function normalizeComparableText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+}
+
+function isBabyGuest(invitationCode: string, memberName: string) {
+  const babyGuests = babyGuestsByInvitationCode[invitationCode] ?? []
+  const normalizedMemberName = normalizeComparableText(memberName)
+
+  return babyGuests.some((babyName) => normalizeComparableText(babyName) === normalizedMemberName)
+}
+
+function getBabySafeFieldValue(invitationCode: string, memberName: string, value: string) {
+  if (isBabyGuest(invitationCode, memberName)) {
+    return BABY_NOT_APPLICABLE_VALUE
+  }
+
+  return value.trim()
+}
+
 function createMembers(invitation: InvitationPreset): InvitationMember[] {
   return invitation.members.map((memberName, index) => ({
     id: `${invitation.code}-${index}`,
     name: memberName,
     attending: false,
     fullName: memberName,
-    identityDocument: '',
-    phone: '',
-    email: '',
+    identityDocument: isBabyGuest(invitation.code, memberName) ? BABY_NOT_APPLICABLE_VALUE : '',
+    phone: isBabyGuest(invitation.code, memberName) ? BABY_NOT_APPLICABLE_VALUE : '',
+    email: isBabyGuest(invitation.code, memberName) ? BABY_NOT_APPLICABLE_VALUE : '',
     hasAllergies: false,
     allergies: '',
     isPrimaryContact: index === 0,
@@ -719,6 +791,391 @@ function getAdminReservationKey(reservation: AdminReservationRecord) {
   }
 
   return `reservation:${reservation.id}`
+}
+
+function formatExportDateValue(value: string | null) {
+  if (!value) {
+    return ''
+  }
+
+  const date = new Date(`${value}T12:00:00`)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat('es-CO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date)
+}
+
+function escapeSpreadsheetXml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
+function createSpreadsheetCell(value: string | number, isHeader = false) {
+  const styleAttribute = isHeader ? ' ss:StyleID="Header"' : ''
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return `<Cell${styleAttribute}><Data ss:Type="Number">${value}</Data></Cell>`
+  }
+
+  return `<Cell${styleAttribute}><Data ss:Type="String">${escapeSpreadsheetXml(String(value))}</Data></Cell>`
+}
+
+function createSpreadsheetRow(values: Array<string | number>, isHeader = false) {
+  return `<Row>${values.map((value) => createSpreadsheetCell(value, isHeader)).join('')}</Row>`
+}
+
+function createMergedSpreadsheetCell(
+  value: string | number,
+  mergeDown = 0,
+  isHeader = false,
+  columnIndex?: number,
+) {
+  const styleAttribute = isHeader ? ' ss:StyleID="Header"' : ''
+  const mergeAttribute = mergeDown > 0 ? ` ss:MergeDown="${mergeDown}"` : ''
+  const indexAttribute = columnIndex ? ` ss:Index="${columnIndex}"` : ''
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return `<Cell${styleAttribute}${mergeAttribute}${indexAttribute}><Data ss:Type="Number">${value}</Data></Cell>`
+  }
+
+  return `<Cell${styleAttribute}${mergeAttribute}${indexAttribute}><Data ss:Type="String">${escapeSpreadsheetXml(String(value))}</Data></Cell>`
+}
+
+function downloadAdminReservationsWorkbook(reservations: AdminReservationRecord[]) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const hotelHeader = [
+    'Reserva ID',
+    'Habitacion',
+    'Numero de noches',
+    'Fecha ingreso',
+    'Fecha salida',
+    'Numero de asistentes',
+    'Nombre asistente',
+    'ID asistente',
+    'Telefono asistente',
+    'Correo asistente',
+    'Alergias asistente',
+    'Contacto principal',
+  ]
+  const hotelTableRowsXml: string[] = [createSpreadsheetRow(hotelHeader, true)]
+  const reservationGroups = new Map<
+    string,
+    {
+      reservationId: string
+      room: string
+      numberOfNights: string | number
+      checkInDate: string
+      checkOutDate: string
+      attendees: Array<{
+        fullName: string
+        identityDocument: string
+        phone: string
+        email: string
+        allergies: string
+        isPrimaryContact: boolean
+        sourceMode: TravelGroupMode | null
+      }>
+    }
+  >()
+
+  reservations.forEach((reservation) => {
+    const reservationId =
+      reservation.group_id?.trim() ||
+      reservation.invitation_code?.trim() ||
+      reservation.id
+    const attendingGuests = resolveStoredAttendees(reservation.attendees_json, {
+      reservationId: reservation.id,
+      fullName: reservation.full_name,
+      identityDocument: reservation.identity_document,
+      phone: reservation.phone,
+      allergies: reservation.allergies,
+    }).filter((attendee) => attendee.attending)
+    const groupKey = [
+      reservationId,
+      reservation.room ?? '',
+      reservation.number_of_nights ?? '',
+      reservation.check_in_date ?? '',
+      reservation.check_out_date ?? '',
+    ].join('||')
+
+    const currentGroup = reservationGroups.get(groupKey)
+    const nextAttendees = attendingGuests.map((attendee) => ({
+      fullName: attendee.fullName || attendee.name,
+      identityDocument: attendee.identityDocument || '',
+      phone: attendee.phone || '',
+      email: attendee.email || '',
+      allergies: attendee.hasAllergies ? attendee.allergies || 'Si, sin detalle' : 'No reporta',
+      isPrimaryContact: attendee.isPrimaryContact,
+      sourceMode: reservation.travel_group_mode,
+    }))
+
+    if (currentGroup) {
+      currentGroup.attendees.push(...nextAttendees)
+      return
+    }
+
+    reservationGroups.set(groupKey, {
+      reservationId,
+      room: reservation.room ?? '',
+      numberOfNights: reservation.number_of_nights ?? '',
+      checkInDate: formatExportDateValue(reservation.check_in_date),
+      checkOutDate: formatExportDateValue(reservation.check_out_date),
+      attendees: nextAttendees,
+    })
+  })
+
+  reservationGroups.forEach((group) => {
+    const hasCreatedGroupAttendees = group.attendees.some((attendee) => attendee.sourceMode === 'create')
+    const normalizedAttendees = group.attendees.map((attendee, index) => {
+      if (!hasCreatedGroupAttendees) {
+        return attendee
+      }
+
+      const createdPrimaryIndex = group.attendees.findIndex(
+        (candidate) => candidate.sourceMode === 'create' && candidate.isPrimaryContact,
+      )
+      const fallbackCreatedIndex = group.attendees.findIndex((candidate) => candidate.sourceMode === 'create')
+      const allowedPrimaryIndex = createdPrimaryIndex >= 0 ? createdPrimaryIndex : fallbackCreatedIndex
+
+      return {
+        ...attendee,
+        isPrimaryContact: index === allowedPrimaryIndex,
+      }
+    })
+
+    if (!normalizedAttendees.length) {
+      hotelTableRowsXml.push(
+        `<Row>${[
+          createMergedSpreadsheetCell(group.reservationId),
+          createMergedSpreadsheetCell(group.room),
+          createMergedSpreadsheetCell(group.numberOfNights),
+          createMergedSpreadsheetCell(group.checkInDate),
+          createMergedSpreadsheetCell(group.checkOutDate),
+          createMergedSpreadsheetCell(0),
+          createMergedSpreadsheetCell(''),
+          createMergedSpreadsheetCell(''),
+          createMergedSpreadsheetCell(''),
+          createMergedSpreadsheetCell(''),
+          createMergedSpreadsheetCell(''),
+          createMergedSpreadsheetCell(''),
+        ].join('')}</Row>`,
+      )
+      return
+    }
+
+    normalizedAttendees.forEach((attendee, index) => {
+      const mergeDown = normalizedAttendees.length - 1
+      const isFirstAttendeeRow = index === 0
+      const rowCells = isFirstAttendeeRow
+        ? [
+            createMergedSpreadsheetCell(group.reservationId, mergeDown),
+            createMergedSpreadsheetCell(group.room, mergeDown),
+            createMergedSpreadsheetCell(group.numberOfNights, mergeDown),
+            createMergedSpreadsheetCell(group.checkInDate, mergeDown),
+            createMergedSpreadsheetCell(group.checkOutDate, mergeDown),
+            createMergedSpreadsheetCell(normalizedAttendees.length, mergeDown),
+            createMergedSpreadsheetCell(attendee.fullName),
+            createMergedSpreadsheetCell(attendee.identityDocument),
+            createMergedSpreadsheetCell(attendee.phone),
+            createMergedSpreadsheetCell(attendee.email),
+            createMergedSpreadsheetCell(attendee.allergies),
+            createMergedSpreadsheetCell(attendee.isPrimaryContact ? 'Si' : 'No'),
+          ]
+        : [
+            createMergedSpreadsheetCell(attendee.fullName, 0, false, 7),
+            createMergedSpreadsheetCell(attendee.identityDocument),
+            createMergedSpreadsheetCell(attendee.phone),
+            createMergedSpreadsheetCell(attendee.email),
+            createMergedSpreadsheetCell(attendee.allergies),
+            createMergedSpreadsheetCell(attendee.isPrimaryContact ? 'Si' : 'No'),
+          ]
+
+      hotelTableRowsXml.push(`<Row>${rowCells.join('')}</Row>`)
+    })
+  })
+
+  const workbookXml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook
+  xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:x="urn:schemas-microsoft-com:office:excel"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:html="http://www.w3.org/TR/REC-html40"
+>
+  <Styles>
+    <Style ss:ID="Default" ss:Name="Normal">
+      <Alignment ss:Vertical="Bottom" ss:WrapText="1"/>
+      <Borders/>
+      <Font ss:FontName="Calibri" ss:Size="11"/>
+      <Interior/>
+      <NumberFormat/>
+      <Protection/>
+    </Style>
+    <Style ss:ID="Header">
+      <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
+      <Interior ss:Color="#EAF6F1" ss:Pattern="Solid"/>
+    </Style>
+  </Styles>
+  <Worksheet ss:Name="Reservas hotel">
+    <Table>
+      ${hotelTableRowsXml.join('')}
+    </Table>
+  </Worksheet>
+</Workbook>`
+
+  const blob = new Blob([workbookXml], { type: 'application/vnd.ms-excel' })
+  const url = window.URL.createObjectURL(blob)
+  const link = window.document.createElement('a')
+  const dateStamp = new Date().toISOString().slice(0, 10)
+
+  link.href = url
+  link.download = `reservas-laura-juan-${dateStamp}.xls`
+  window.document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+}
+
+function downloadCoupleInvitationsWorkbook(reservations: AdminReservationRecord[]) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const invitationHeader = [
+    'Invitacion ID',
+    'Link de invitacion',
+    'Numero de asistentes',
+    'Nombre de asistente',
+    'Telefono de contacto',
+    'Contacto principal',
+    'Confirmacion',
+    'Opcional',
+  ]
+  const invitationRowsXml: string[] = [createSpreadsheetRow(invitationHeader, true)]
+  const reservationsByInvitationCode = new Map<string, AdminReservationRecord>()
+  const invitationBaseUrl = `${window.location.origin}/?invite=`
+
+  reservations.forEach((reservation) => {
+    const invitationCode = reservation.invitation_code?.trim()
+
+    if (!invitationCode) {
+      return
+    }
+
+    const currentReservation = reservationsByInvitationCode.get(invitationCode)
+    const currentCreatedAt = currentReservation?.created_at ? new Date(currentReservation.created_at).getTime() : 0
+    const nextCreatedAt = reservation.created_at ? new Date(reservation.created_at).getTime() : 0
+
+    if (!currentReservation || nextCreatedAt >= currentCreatedAt) {
+      reservationsByInvitationCode.set(invitationCode, reservation)
+    }
+  })
+
+  invitationPresets.forEach((invitation) => {
+    const savedReservation = reservationsByInvitationCode.get(invitation.code)
+    const storedAttendees = savedReservation
+      ? resolveStoredAttendees(savedReservation.attendees_json, {
+          reservationId: savedReservation.id,
+          fullName: savedReservation.full_name,
+          identityDocument: savedReservation.identity_document,
+          phone: savedReservation.phone,
+          allergies: savedReservation.allergies,
+        })
+      : []
+    const attendeeCount = invitation.members.length
+    const inviteLink = `${invitationBaseUrl}${invitation.slug}`
+
+    invitation.members.forEach((memberName, index) => {
+      const storedAttendee =
+        storedAttendees.find((attendee) => attendee.id === `${invitation.code}-${index}`) ??
+        storedAttendees.find(
+          (attendee) => normalizeComparableText(attendee.name) === normalizeComparableText(memberName),
+        ) ??
+        null
+      const contactPhone = storedAttendee?.phone || ''
+      const isPrimaryContact = storedAttendee?.isPrimaryContact ? 'Si' : 'No'
+      const confirmation = storedAttendee ? (storedAttendee.attending ? 'Asistire' : 'No asistire') : 'SIN CONFIRMAR'
+      const optionalValue = invitation.isOptional ? 'Si' : 'No'
+      const isFirstRow = index === 0
+      const mergeDown = attendeeCount - 1
+      const rowCells = isFirstRow
+        ? [
+            createMergedSpreadsheetCell(invitation.code, mergeDown),
+            createMergedSpreadsheetCell(inviteLink, mergeDown),
+            createMergedSpreadsheetCell(attendeeCount, mergeDown),
+            createMergedSpreadsheetCell(storedAttendee?.fullName || memberName),
+            createMergedSpreadsheetCell(contactPhone),
+            createMergedSpreadsheetCell(isPrimaryContact),
+            createMergedSpreadsheetCell(confirmation),
+            createMergedSpreadsheetCell(optionalValue, mergeDown),
+          ]
+        : [
+            createMergedSpreadsheetCell(storedAttendee?.fullName || memberName, 0, false, 4),
+            createMergedSpreadsheetCell(contactPhone),
+            createMergedSpreadsheetCell(isPrimaryContact),
+            createMergedSpreadsheetCell(confirmation),
+            createMergedSpreadsheetCell(optionalValue),
+          ]
+
+      invitationRowsXml.push(`<Row>${rowCells.join('')}</Row>`)
+    })
+  })
+
+  const workbookXml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook
+  xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:x="urn:schemas-microsoft-com:office:excel"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:html="http://www.w3.org/TR/REC-html40"
+>
+  <Styles>
+    <Style ss:ID="Default" ss:Name="Normal">
+      <Alignment ss:Vertical="Bottom" ss:WrapText="1"/>
+      <Borders/>
+      <Font ss:FontName="Calibri" ss:Size="11"/>
+      <Interior/>
+      <NumberFormat/>
+      <Protection/>
+    </Style>
+    <Style ss:ID="Header">
+      <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
+      <Interior ss:Color="#EAF6F1" ss:Pattern="Solid"/>
+    </Style>
+  </Styles>
+  <Worksheet ss:Name="Invitaciones novios">
+    <Table>
+      ${invitationRowsXml.join('')}
+    </Table>
+  </Worksheet>
+</Workbook>`
+
+  const blob = new Blob([workbookXml], { type: 'application/vnd.ms-excel' })
+  const url = window.URL.createObjectURL(blob)
+  const link = window.document.createElement('a')
+  const dateStamp = new Date().toISOString().slice(0, 10)
+
+  link.href = url
+  link.download = `invitaciones-novios-laura-juan-${dateStamp}.xls`
+  window.document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
 }
 
 function AdminPanel() {
@@ -932,6 +1389,21 @@ function AdminPanel() {
     setSelectedReservationId(null)
   }
 
+  function handleExportWorkbook() {
+    if (!reservations.length) {
+      setErrorMessage('Aún no hay reservas para exportar.')
+      return
+    }
+
+    setErrorMessage('')
+    downloadAdminReservationsWorkbook(reservations)
+  }
+
+  function handleExportCoupleWorkbook() {
+    setErrorMessage('')
+    downloadCoupleInvitationsWorkbook(reservations)
+  }
+
   if (!isAuthorized) {
     return (
       <main className="admin-shell">
@@ -973,6 +1445,12 @@ function AdminPanel() {
         </div>
         <div className="admin-hero-actions">
           <span className="admin-updated-at">Última actualización: {formatAdminDateTime(lastUpdated)}</span>
+          <button className="secondary-button" onClick={handleExportWorkbook} type="button">
+            Excel hotel
+          </button>
+          <button className="secondary-button" onClick={handleExportCoupleWorkbook} type="button">
+            Excel novios
+          </button>
           <button className="secondary-button" onClick={handleLogout} type="button">
             Cerrar panel
           </button>
@@ -1535,6 +2013,7 @@ function App() {
       })
       const storedAttendees = storedAttendeesFromDb
       const nextMembers = createMembers(activeInvitation).map((member, index) => {
+        const isBabyMember = isBabyGuest(activeInvitation.code, member.name)
         const storedMember =
           storedAttendees.find((candidate) => candidate.id === member.id) ??
           storedAttendees.find((candidate) => candidate.name.trim().toLowerCase() === member.name.trim().toLowerCase())
@@ -1547,9 +2026,9 @@ function App() {
           ...member,
           attending: storedMember.attending,
           fullName: storedMember.fullName || member.fullName,
-          identityDocument: storedMember.identityDocument || '',
-          phone: storedMember.phone || '',
-          email: storedMember.email || '',
+          identityDocument: storedMember.identityDocument || (isBabyMember ? BABY_NOT_APPLICABLE_VALUE : ''),
+          phone: storedMember.phone || (isBabyMember ? BABY_NOT_APPLICABLE_VALUE : ''),
+          email: storedMember.email || (isBabyMember ? BABY_NOT_APPLICABLE_VALUE : ''),
           hasAllergies: storedMember.hasAllergies,
           allergies: storedMember.allergies || '',
           isPrimaryContact:
@@ -1819,8 +2298,8 @@ function App() {
     const incompleteAttendee = attendingMembers.find(
       (member) =>
         !member.fullName.trim() ||
-        !member.identityDocument.trim() ||
-        !member.phone.trim() ||
+        (!isBabyGuest(activeInvitation.code, member.name) && !member.identityDocument.trim()) ||
+        (!isBabyGuest(activeInvitation.code, member.name) && !member.phone.trim()) ||
         (member.hasAllergies && !member.allergies.trim()),
     )
 
@@ -2023,9 +2502,9 @@ function App() {
         name: member.name,
         attending: member.attending,
         fullName: member.fullName.trim() || member.name.trim(),
-        identityDocument: member.identityDocument.trim(),
-        phone: member.phone.trim(),
-        email: member.email.trim(),
+        identityDocument: getBabySafeFieldValue(activeInvitation.code, member.name, member.identityDocument),
+        phone: getBabySafeFieldValue(activeInvitation.code, member.name, member.phone),
+        email: getBabySafeFieldValue(activeInvitation.code, member.name, member.email),
         hasAllergies: member.hasAllergies,
         allergies: member.hasAllergies ? member.allergies.trim() : '',
         isPrimaryContact: member.attending ? member.isPrimaryContact : false,
@@ -2405,6 +2884,11 @@ function App() {
                               <span>Contacto principal</span>
                             </label>
                             <div className="attendee-details-grid">
+                              {(() => {
+                                const isBabyMember = isBabyGuest(activeInvitation.code, member.name)
+
+                                return (
+                                  <>
                               <label>
                                 Nombre completo *
                                 <input
@@ -2414,31 +2898,37 @@ function App() {
                                 />
                               </label>
                               <label>
-                                ID o Pasaporte *
+                                ID o Pasaporte {isBabyMember ? '' : '*'}
                                 <input
+                                  readOnly={isBabyMember}
                                   onChange={(event) =>
                                     handleMemberFieldChange(member.id, 'identityDocument', event.target.value)
                                   }
-                                  required
+                                  required={!isBabyMember}
                                   value={member.identityDocument}
                                 />
                               </label>
                               <label>
-                                Teléfono *
+                                Teléfono {isBabyMember ? '' : '*'}
                                 <input
+                                  readOnly={isBabyMember}
                                   onChange={(event) => handleMemberFieldChange(member.id, 'phone', event.target.value)}
-                                  required
+                                  required={!isBabyMember}
                                   value={member.phone}
                                 />
                               </label>
                               <label>
                                 Correo
                                 <input
+                                  readOnly={isBabyMember}
                                   onChange={(event) => handleMemberFieldChange(member.id, 'email', event.target.value)}
                                   type="email"
                                   value={member.email}
                                 />
                               </label>
+                                  </>
+                                )
+                              })()}
                               <div className="full-span allergy-toggle-row">
                                 <span>Alergias</span>
                                 <button
