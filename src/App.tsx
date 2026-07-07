@@ -1068,6 +1068,9 @@ function downloadCoupleInvitationsWorkbook(reservations: AdminReservationRecord[
   const invitationRowsXml: string[] = [createSpreadsheetRow(invitationHeader, true)]
   const reservationsByInvitationCode = new Map<string, AdminReservationRecord>()
   const invitationBaseUrl = `${window.location.origin}/?invite=`
+  let confirmedAttendeesCount = 0
+  let declinedAttendeesCount = 0
+  let unconfirmedAttendeesCount = 0
 
   reservations.forEach((reservation) => {
     const invitationCode = reservation.invitation_code?.trim()
@@ -1110,6 +1113,15 @@ function downloadCoupleInvitationsWorkbook(reservations: AdminReservationRecord[
       const isPrimaryContact = storedAttendee?.isPrimaryContact ? 'Si' : 'No'
       const confirmation = storedAttendee ? (storedAttendee.attending ? 'Asistire' : 'No asistire') : 'SIN CONFIRMAR'
       const optionalValue = invitation.isOptional ? 'Si' : 'No'
+
+      if (storedAttendee?.attending) {
+        confirmedAttendeesCount += 1
+      } else if (storedAttendee) {
+        declinedAttendeesCount += 1
+      } else {
+        unconfirmedAttendeesCount += 1
+      }
+
       const isFirstRow = index === 0
       const mergeDown = attendeeCount - 1
       const rowCells = isFirstRow
@@ -1134,6 +1146,44 @@ function downloadCoupleInvitationsWorkbook(reservations: AdminReservationRecord[
       invitationRowsXml.push(`<Row>${rowCells.join('')}</Row>`)
     })
   })
+
+  invitationRowsXml.push(createSpreadsheetRow(['', '', '', '', '', '', '', '']))
+  invitationRowsXml.push(
+    createSpreadsheetRow([
+      'Resumen',
+      '',
+      '',
+      '',
+      '',
+      '',
+      'Total confirmados',
+      confirmedAttendeesCount,
+    ]),
+  )
+  invitationRowsXml.push(
+    createSpreadsheetRow([
+      'Resumen',
+      '',
+      '',
+      '',
+      '',
+      '',
+      'Total no asistiran',
+      declinedAttendeesCount,
+    ]),
+  )
+  invitationRowsXml.push(
+    createSpreadsheetRow([
+      'Resumen',
+      '',
+      '',
+      '',
+      '',
+      '',
+      'Total sin confirmar',
+      unconfirmedAttendeesCount,
+    ]),
+  )
 
   const workbookXml = `<?xml version="1.0"?>
 <?mso-application progid="Excel.Sheet"?>
