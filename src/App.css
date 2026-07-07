@@ -983,9 +983,25 @@
 
 .lodging-includes-list {
   margin: 0;
-  padding-left: 28px;
+  padding-left: 0;
+  list-style: none;
   color: var(--ink-strong);
   line-height: 1.55;
+}
+
+.lodging-includes-list li {
+  position: relative;
+  padding-left: 26px;
+}
+
+.lodging-includes-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--mint-700);
+  font-size: 1.15rem;
+  line-height: 1.3;
 }
 
 .lodging-includes-list li + li {
@@ -1003,9 +1019,20 @@
 }
 
 .lodging-deadline {
-  font-size: 1.6em;
-  display: inline-block;
-  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: rgba(214, 240, 227, 0.95);
+  border: 1px solid rgba(127, 187, 166, 0.28);
+  color: #2f5b4d;
+  font-family: inherit;
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  box-shadow: 0 8px 18px rgba(127, 187, 166, 0.1);
 }
 
 .lodging-banner.is-muted {

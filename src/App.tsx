@@ -3633,13 +3633,17 @@ function App() {
 
                 <article className="lodging-detail-card">
                   <span className="meta-label">Importante:</span>
-                  <p className="lodging-note">
-                    Una vez realizado un abono, el hotel no realiza devoluciones.
-                  </p>
-                  <p className="lodging-note">
-                    Tienes tiempo de confirmar o editar tu reserva hasta el{' '}
-                    <strong className="lodging-deadline">1 de Agosto de 2026</strong>.
-                  </p>
+                  <ul className="lodging-includes-list">
+                    <li>Una vez realizado un abono, el hotel no realiza devoluciones.</li>
+                    <li>
+                      Tienes tiempo de confirmar o editar tu reserva hasta el{' '}
+                      <span className="lodging-deadline">1 de Agosto de 2026</span>
+                    </li>
+                    <li>
+                      Es importante que llegues a La Bodeguita de Cartagena antes de las 11:00 a. m., ya que el
+                      transporte hacia la Isla Múcura sale antes de esa hora.
+                    </li>
+                  </ul>
                 </article>
               </div>
             </article>
