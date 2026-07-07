@@ -583,14 +583,24 @@
 
 .attendance-info-actions {
   display: grid;
-  justify-content: center;
   gap: 14px;
-  width: min(360px, 100%);
+  width: 100%;
   margin: 0 auto;
 }
 
-.attendance-info-actions > * {
+.attendance-payment-action {
   width: 100%;
+  margin: 14px auto 0;
+}
+
+.attendance-action-info,
+.attendance-action-rsvp,
+.attendance-action-payment {
+  display: inline-flex;
+  width: min(360px, 100%);
+  max-width: 360px;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .venue-section {
@@ -1108,6 +1118,28 @@
   border: 0;
   background: transparent;
   padding: 0;
+}
+
+.lodging-price-accordion {
+  margin-top: 6px;
+  border-color: rgba(127, 187, 166, 0.18);
+  background:
+    radial-gradient(circle at top left, rgba(191, 227, 211, 0.34), transparent 48%),
+    radial-gradient(circle at bottom right, rgba(127, 187, 166, 0.18), transparent 52%),
+    linear-gradient(180deg, rgba(243, 252, 247, 0.96), rgba(234, 248, 241, 0.92));
+  box-shadow: 0 18px 40px rgba(127, 187, 166, 0.1);
+}
+
+.lodging-price-accordion .accordion-card-body {
+  padding-top: 0;
+}
+
+.lodging-price-accordion .lodging-price-card {
+  margin-top: 0;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
 }
 
 .member-summary-card {

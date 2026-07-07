@@ -356,3 +356,6 @@ on public.song_suggestions
 for select
 to authenticated
 using (true);
+
+grant insert on public.song_suggestions to anon, authenticated;
+grant select on public.song_suggestions to authenticated;

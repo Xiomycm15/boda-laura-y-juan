@@ -1694,6 +1694,7 @@ function App() {
   const [isInfoOpen, setIsInfoOpen] = useState(false)
   const [isSongModalOpen, setIsSongModalOpen] = useState(false)
   const [isDressCodeModalOpen, setIsDressCodeModalOpen] = useState(false)
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [activePortraitIndex, setActivePortraitIndex] = useState(0)
   const [visiblePortraits, setVisiblePortraits] = useState(() => (window.innerWidth <= 900 ? 1 : 3))
   const [activeInvitation] = useState<InvitationPreset>(() => getInvitationFromSearch())
@@ -1703,6 +1704,7 @@ function App() {
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [isEditingReservation, setIsEditingReservation] = useState(false)
   const [isReservationLoading, setIsReservationLoading] = useState(false)
+  const [hasSavedReservation, setHasSavedReservation] = useState(false)
   const [savedReservationSnapshot, setSavedReservationSnapshot] = useState<SavedReservationSnapshot | null>(null)
   const [availabilityEntries, setAvailabilityEntries] = useState<AvailabilityEntry[]>([])
   const [existingGroups, setExistingGroups] = useState<ExistingGroupOption[]>([])
@@ -1716,6 +1718,7 @@ function App() {
   const attendingCount = attendingMembers.length
   const isDecliningInvitation = attendingCount === 0
   const isKnownInvitation = activeInvitation.code !== 'INV-DEFAULT'
+  const isPaymentPortalEnabled = isKnownInvitation && hasSavedReservation && !isReservationLoading
   const principalContact = attendingMembers.find((member) => member.isPrimaryContact) ?? attendingMembers[0] ?? null
   const principalContactName = principalContact?.fullName.trim() || activeInvitation.members[0] || ''
   const minimumGroupCapacityOption = attendingCount < 6 ? attendingCount + 1 : 6
@@ -1946,12 +1949,15 @@ function App() {
   }, [maxPortraitIndex])
 
   useEffect(() => {
-    document.body.classList.toggle('modal-open', isRsvpOpen || isInfoOpen || isSongModalOpen || isDressCodeModalOpen)
+    document.body.classList.toggle(
+      'modal-open',
+      isRsvpOpen || isInfoOpen || isSongModalOpen || isDressCodeModalOpen || isPaymentModalOpen,
+    )
 
     return () => {
       document.body.classList.remove('modal-open')
     }
-  }, [isDressCodeModalOpen, isInfoOpen, isRsvpOpen, isSongModalOpen])
+  }, [isDressCodeModalOpen, isInfoOpen, isPaymentModalOpen, isRsvpOpen, isSongModalOpen])
 
   useEffect(() => {
     if (attendingCount > 0) {
@@ -2013,6 +2019,40 @@ function App() {
   }, [isRsvpOpen])
 
   useEffect(() => {
+    if (!isKnownInvitation || !supabase) {
+      setHasSavedReservation(false)
+      return
+    }
+
+    let isCancelled = false
+    const supabaseClient = supabase
+
+    async function checkSavedReservation() {
+      const { data, error } = await supabaseClient.rpc('get_wedding_rsvp_by_invitation', {
+        invitation_code_param: activeInvitation.code,
+      })
+
+      if (isCancelled) {
+        return
+      }
+
+      if (error) {
+        setHasSavedReservation(false)
+        return
+      }
+
+      const savedReservation = (Array.isArray(data) ? data[0] : data) as SavedRsvpRecord | null
+      setHasSavedReservation(Boolean(savedReservation))
+    }
+
+    void checkSavedReservation()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [activeInvitation.code, isKnownInvitation, supabase])
+
+  useEffect(() => {
     if (!isRsvpOpen || !isKnownInvitation || !supabase) {
       if (!supabase || !isKnownInvitation) {
         setIsReservationLoading(false)
@@ -2039,6 +2079,7 @@ function App() {
         setFormData(buildInitialFormData(activeInvitation))
         setSavedReservationSnapshot(null)
         setIsEditingReservation(false)
+        setHasSavedReservation(false)
         setIsReservationLoading(false)
         return
       }
@@ -2050,6 +2091,7 @@ function App() {
         setFormData(buildInitialFormData(activeInvitation))
         setSavedReservationSnapshot(null)
         setIsEditingReservation(false)
+        setHasSavedReservation(false)
         setIsReservationLoading(false)
         return
       }
@@ -2135,6 +2177,7 @@ function App() {
 
       setFormData(nextFormData)
       setIsEditingReservation(true)
+      setHasSavedReservation(true)
       setIsReservationLoading(false)
     }
 
@@ -2202,6 +2245,14 @@ function App() {
     setIsDressCodeModalOpen(false)
   }
 
+  function openPaymentModal() {
+    setIsPaymentModalOpen(true)
+  }
+
+  function closePaymentModal() {
+    setIsPaymentModalOpen(false)
+  }
+
   function showPreviousPortrait() {
     setActivePortraitIndex((currentIndex) => (currentIndex <= 0 ? maxPortraitIndex : currentIndex - 1))
   }
@@ -2241,7 +2292,7 @@ function App() {
     const { error } = await supabase.from('song_suggestions').insert(payload)
 
     if (error) {
-      setSongSuggestionFeedback('No se pudo guardar la canción. Intenta de nuevo.')
+      setSongSuggestionFeedback(`No se pudo guardar la canción. ${error.message}`)
       return
     }
 
@@ -2623,6 +2674,7 @@ function App() {
       travelGroupMode: payload.travel_group_mode,
     })
     setIsEditingReservation(true)
+    setHasSavedReservation(true)
     setSubmitState('success')
     setFeedbackMessage(
       wasEditingReservation
@@ -2734,11 +2786,26 @@ function App() {
             asistencia.
           </p>
           <div className="attendance-info-actions">
-            <button className="secondary-button" onClick={openInfoModal} type="button">
+            <button className="secondary-button attendance-action-info" onClick={openInfoModal} type="button">
               Ver información completa
             </button>
-            <button className="primary-button" disabled={!isKnownInvitation} onClick={openRsvpModal} type="button">
+            <button
+              className="primary-button attendance-action-rsvp"
+              disabled={!isKnownInvitation}
+              onClick={openRsvpModal}
+              type="button"
+            >
               Responder invitación
+            </button>
+          </div>
+          <div className="attendance-payment-action">
+            <button
+              className="secondary-button attendance-action-payment"
+              disabled={!isPaymentPortalEnabled}
+              onClick={openPaymentModal}
+              type="button"
+            >
+              Portal de pagos
             </button>
           </div>
         </section>
@@ -3120,34 +3187,40 @@ function App() {
                       </div>
 
                       {summaryRoomOption && summaryNightCount && summaryPricePerPerson && summaryStayTotal && summaryPeopleCount ? (
-                        <div className="lodging-price-card lodging-price-card--flat">
-                          <span className="meta-label">Resumen de precio</span>
-                          <strong>{summaryRoomOption.label}</strong>
-                          <p>
-                            Esta habitación admite hasta {summaryRoomOption.capacity} persona(s) · Personas dentro del grupo:{' '}
-                            {summaryPeopleCount}
-                          </p>
-                          <p>
-                            Valor por persona para {summaryNightCount} noche(s): {formatCurrency(summaryPricePerPerson)}
-                          </p>
-                          <p>Total estimado del grupo: {formatCurrency(summaryStayTotal)}</p>
-                          <div>
-                            <span className="meta-label">Plan de pagos del grupo</span>
-                            {paymentPlan.map((installment) => (
-                              <p key={installment.label}>
-                                {installment.label}: {formatCurrency(installment.amount)}
+                        <details className="accordion-card lodging-price-accordion" open>
+                          <summary className="accordion-card-summary">
+                            <span className="meta-label">Resumen de precio</span>
+                            <strong>{summaryRoomOption.label}</strong>
+                          </summary>
+                          <div className="accordion-card-body">
+                            <div className="lodging-price-card lodging-price-card--flat">
+                              <p>
+                                Esta habitación admite hasta {summaryRoomOption.capacity} persona(s) · Personas dentro del grupo:{' '}
+                                {summaryPeopleCount}
                               </p>
-                            ))}
-                          </div>
-                          <div>
-                            <span className="meta-label">Plan de pagos por persona</span>
-                            {paymentPlanPerPerson.map((installment) => (
-                              <p key={`person-${installment.label}`}>
-                                {installment.label}: {formatCurrency(installment.amount)}
+                              <p>
+                                Valor por persona para {summaryNightCount} noche(s): {formatCurrency(summaryPricePerPerson)}
                               </p>
-                            ))}
+                              <p>Total estimado del grupo: {formatCurrency(summaryStayTotal)}</p>
+                              <div>
+                                <span className="meta-label">Plan de pagos del grupo</span>
+                                {paymentPlan.map((installment) => (
+                                  <p key={installment.label}>
+                                    {installment.label}: {formatCurrency(installment.amount)}
+                                  </p>
+                                ))}
+                              </div>
+                              <div>
+                                <span className="meta-label">Plan de pagos por persona</span>
+                                {paymentPlanPerPerson.map((installment) => (
+                                  <p key={`person-${installment.label}`}>
+                                    {installment.label}: {formatCurrency(installment.amount)}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        </details>
                       ) : (
                         <p className="availability-note">
                           El grupo seleccionado todavía no tiene completos los datos necesarios para mostrar el resumen del hospedaje.
@@ -3301,37 +3374,43 @@ function App() {
                       </details>
 
                       {summaryRoomOption && summaryNightCount && summaryPricePerPerson && summaryStayTotal && summaryPeopleCount ? (
-                        <article className="lodging-price-card">
-                          <span className="meta-label">Resumen de precio</span>
-                          <strong>{summaryRoomOption.label}</strong>
-                          <p>
-                            Esta habitación admite hasta {summaryRoomOption.capacity} persona(s) ·{' '}
-                            {formData.travelGroupMode === 'create'
-                              ? `Personas dentro del grupo: ${summaryPeopleCount}`
-                              : `En esta reserva se hospedarán ${summaryPeopleCount}`}
-                          </p>
-                          <p>
-                            Valor por persona para {summaryNightCount} noche(s):{' '}
-                            {formatCurrency(summaryPricePerPerson)}
-                          </p>
-                          <p>Total estimado del grupo: {formatCurrency(summaryStayTotal)}</p>
-                          <div>
-                            <span className="meta-label">Plan de pagos del grupo</span>
-                            {paymentPlan.map((installment) => (
-                              <p key={installment.label}>
-                                {installment.label}: {formatCurrency(installment.amount)}
+                        <details className="accordion-card lodging-price-accordion" open>
+                          <summary className="accordion-card-summary">
+                            <span className="meta-label">Resumen de precio</span>
+                            <strong>{summaryRoomOption.label}</strong>
+                          </summary>
+                          <div className="accordion-card-body">
+                            <div className="lodging-price-card">
+                              <p>
+                                Esta habitación admite hasta {summaryRoomOption.capacity} persona(s) ·{' '}
+                                {formData.travelGroupMode === 'create'
+                                  ? `Personas dentro del grupo: ${summaryPeopleCount}`
+                                  : `En esta reserva se hospedarán ${summaryPeopleCount}`}
                               </p>
-                            ))}
-                          </div>
-                          <div>
-                            <span className="meta-label">Plan de pagos por persona</span>
-                            {paymentPlanPerPerson.map((installment) => (
-                              <p key={`person-${installment.label}`}>
-                                {installment.label}: {formatCurrency(installment.amount)}
+                              <p>
+                                Valor por persona para {summaryNightCount} noche(s):{' '}
+                                {formatCurrency(summaryPricePerPerson)}
                               </p>
-                            ))}
+                              <p>Total estimado del grupo: {formatCurrency(summaryStayTotal)}</p>
+                              <div>
+                                <span className="meta-label">Plan de pagos del grupo</span>
+                                {paymentPlan.map((installment) => (
+                                  <p key={installment.label}>
+                                    {installment.label}: {formatCurrency(installment.amount)}
+                                  </p>
+                                ))}
+                              </div>
+                              <div>
+                                <span className="meta-label">Plan de pagos por persona</span>
+                                {paymentPlanPerPerson.map((installment) => (
+                                  <p key={`person-${installment.label}`}>
+                                    {installment.label}: {formatCurrency(installment.amount)}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                        </article>
+                        </details>
                       ) : (
                         <p className="availability-note">
                           Completa los datos del hospedaje para ver aquí el resumen final del grupo.
@@ -3433,32 +3512,38 @@ function App() {
                     </div>
 
                     {summaryRoomOption && summaryNightCount && summaryPricePerPerson && summaryStayTotal && summaryPeopleCount ? (
-                      <article className="lodging-price-card">
-                        <span className="meta-label">Resumen de precio</span>
-                        <strong>{summaryRoomOption.label}</strong>
-                        <p>
-                          Esta habitación admite hasta {summaryRoomOption.capacity} persona(s) · En esta reserva se hospedarán{' '}
-                          {summaryPeopleCount}
-                        </p>
-                        <p>Valor por persona para {summaryNightCount} noche(s): {formatCurrency(summaryPricePerPerson)}</p>
-                        <p>Total estimado del grupo: {formatCurrency(summaryStayTotal)}</p>
-                        <div>
-                          <span className="meta-label">Plan de pagos del grupo</span>
-                          {paymentPlan.map((installment) => (
-                            <p key={installment.label}>
-                              {installment.label}: {formatCurrency(installment.amount)}
+                      <details className="accordion-card lodging-price-accordion" open>
+                        <summary className="accordion-card-summary">
+                          <span className="meta-label">Resumen de precio</span>
+                          <strong>{summaryRoomOption.label}</strong>
+                        </summary>
+                        <div className="accordion-card-body">
+                          <div className="lodging-price-card">
+                            <p>
+                              Esta habitación admite hasta {summaryRoomOption.capacity} persona(s) · En esta reserva se hospedarán{' '}
+                              {summaryPeopleCount}
                             </p>
-                          ))}
+                            <p>Valor por persona para {summaryNightCount} noche(s): {formatCurrency(summaryPricePerPerson)}</p>
+                            <p>Total estimado del grupo: {formatCurrency(summaryStayTotal)}</p>
+                            <div>
+                              <span className="meta-label">Plan de pagos del grupo</span>
+                              {paymentPlan.map((installment) => (
+                                <p key={installment.label}>
+                                  {installment.label}: {formatCurrency(installment.amount)}
+                                </p>
+                              ))}
+                            </div>
+                            <div>
+                              <span className="meta-label">Plan de pagos por persona</span>
+                              {paymentPlanPerPerson.map((installment) => (
+                                <p key={`person-${installment.label}`}>
+                                  {installment.label}: {formatCurrency(installment.amount)}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <span className="meta-label">Plan de pagos por persona</span>
-                          {paymentPlanPerPerson.map((installment) => (
-                            <p key={`person-${installment.label}`}>
-                              {installment.label}: {formatCurrency(installment.amount)}
-                            </p>
-                          ))}
-                        </div>
-                      </article>
+                      </details>
                     ) : null}
                     </div>
                   ) : null}
@@ -3623,7 +3708,11 @@ function App() {
                   value={songSuggestionForm.songLink}
                 />
               </label>
-              {songSuggestionFeedback ? <p className="form-feedback is-success">{songSuggestionFeedback}</p> : null}
+              {songSuggestionFeedback ? (
+                <p className={`form-feedback ${songSuggestionFeedback.startsWith('No se pudo') ? 'is-error' : 'is-success'}`}>
+                  {songSuggestionFeedback}
+                </p>
+              ) : null}
               <div className="form-actions">
                 <button className="secondary-button" onClick={closeSongModal} type="button">
                   Cerrar
@@ -3658,6 +3747,47 @@ function App() {
             <h2 id="dress-code-modal-title">White party</h2>
             <p className="modal-copy">Todos de blanco</p>
             <p className="modal-copy">Estilo <span className="dress-code-accent">boho chic</span></p>
+          </section>
+        </div>
+      ) : null}
+
+      {isPaymentModalOpen ? (
+        <div className="modal-backdrop" role="presentation" onClick={closePaymentModal}>
+          <section
+            aria-labelledby="payment-modal-title"
+            aria-modal="true"
+            className="party-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <button
+              aria-label="Cerrar portal de pagos"
+              className="modal-close"
+              onClick={closePaymentModal}
+              type="button"
+            >
+              ×
+            </button>
+            <p className="eyebrow">Portal de pagos</p>
+            <h2 id="payment-modal-title">Información para realizar tu pago</h2>
+            <p className="modal-copy">Hay dos métodos de pago:</p>
+            <p className="modal-copy">
+              1. Por medio de este link:{' '}
+              <a href="https://checkout.wompi.co/method" rel="noreferrer" target="_blank">
+                https://checkout.wompi.co/method
+              </a>
+            </p>
+            <p className="modal-copy">
+              2. Transferencia a BANCOLOMBIA S.A. para la cuenta INVERSIONES MUNDO MUCURA SAS identificado(a) con
+              NIT 901079616 a la cuenta de ahorros número 21889824406
+            </p>
+            <p className="modal-copy">
+              <strong>IMPORTANTE:</strong> No se hará devoluciones en caso de que ya haya hecho algún pago.
+            </p>
+            <p className="modal-copy">
+              Enviar los comprobantes de pago al correo{' '}
+              <a href="mailto:vanewambers@gmail.com">vanewambers@gmail.com</a>
+            </p>
           </section>
         </div>
       ) : null}
