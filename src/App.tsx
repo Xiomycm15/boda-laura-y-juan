@@ -3286,7 +3286,12 @@ function App() {
               {isReservationLoading
                 ? 'Estamos buscando si esta invitación ya tenía una reserva guardada...'
                 : isEditingReservation
-                  ? 'Ya habías confirmado esta invitación. Aquí puedes editar tu información y guardar cambios.'
+                  ? (
+                    <>
+                      Ya habías confirmado esta invitación. Aquí puedes editar tu información y guardar cambios hasta el{' '}
+                      <strong className="rsvp-deadline-highlight">1 de Agosto</strong>.
+                    </>
+                  )
                   : (
                     <>
                       Completa la información de tu invitación. Si necesitas hacer cambios, podrás editarla aquí mismo hasta el{' '}
@@ -3305,6 +3310,7 @@ function App() {
                   {familyMembers.map((member) => (
                     <div className="member-stack" key={member.id}>
                       <div className={`member-card ${member.attending ? 'is-attending' : 'is-not-attending'}`}>
+                        <span className="member-card-name">{member.name}</span>
                         <div className="attendance-choice-group" aria-label={`Confirmación de asistencia para ${member.name}`} role="radiogroup">
                           <button
                             aria-checked={member.attending}
@@ -3329,7 +3335,6 @@ function App() {
                             <span>No asistiré</span>
                           </button>
                         </div>
-                        <span className="member-card-name">{member.name}</span>
                       </div>
                       {member.attending ? (
                         <details className="attendee-details-card" open>

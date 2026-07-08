@@ -1562,8 +1562,8 @@
 
 .member-card {
   display: flex;
-  justify-content: flex-start;
-  gap: 14px;
+  justify-content: space-between;
+  gap: 10px;
   align-items: center;
   padding: 12px 4px;
   width: 100%;
@@ -1580,9 +1580,11 @@
 .attendance-choice-group {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  width: 100%;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 8px;
+  width: auto;
+  flex: 0 0 auto;
 }
 
 .attendance-choice {
@@ -1684,7 +1686,9 @@
   font-size: 1.02rem;
   color: #7b8da3;
   line-height: 1.2;
-  white-space: normal;
+  white-space: nowrap;
+  flex: 0 1 auto;
+  margin-right: 2px;
 }
 
 .member-card.is-attending .member-card-name {
@@ -2009,8 +2013,8 @@
   }
 
   .member-card {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
     gap: 10px;
   }
 
