@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { supabase } from './lib/supabase'
+import siNoTeTengoTrack from './assets/audio/si-no-te-tengo.mp3'
+import theVowTrack from './assets/audio/the-vow.mp3'
+import volviANacerTrack from './assets/audio/volvi-a-nacer.mp3'
 import portadaLauraJuan from './assets/images/portada-laura-juan.jpeg'
 import infoIslaMucura from './assets/info/info-isla-mucura.jpeg'
 import retratos01 from './assets/gallery/retratos-01.jpeg'
@@ -191,7 +194,42 @@ type SongSuggestionFormData = {
   songLink: string
 }
 
+type SoundtrackTrack = {
+  title: string
+  artist: string
+  src: string
+}
+
 const weddingDate = new Date('2027-05-27T16:30:00')
+const weddingSoundtrack: SoundtrackTrack[] = [
+  {
+    title: 'Volví a Nacer',
+    artist: 'Carlos Vives',
+    src: volviANacerTrack,
+  },
+  {
+    title: 'The Vow',
+    artist: 'Ed Sheeran',
+    src: theVowTrack,
+  },
+  {
+    title: 'Si no te tengo',
+    artist: 'Green Valley',
+    src: siNoTeTengoTrack,
+  },
+]
+
+function formatTrackTime(totalSeconds: number) {
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+    return '0:00'
+  }
+
+  const safeSeconds = Math.floor(totalSeconds)
+  const minutes = Math.floor(safeSeconds / 60)
+  const seconds = safeSeconds % 60
+
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
 
 const invitationPresets: InvitationPreset[] = [
   { code: 'INV-001', slug: 'papitos-jeanet-salo', label: 'Papitos: Jeanet & Salo', members: ['Jeanet', 'Salo'] },
@@ -1689,6 +1727,7 @@ function App() {
     return <AdminPanel />
   }
 
+  const audioRef = useRef<HTMLAudioElement | null>(null)
   const [countdown, setCountdown] = useState<Countdown>(() => getCountdown(weddingDate))
   const [isRsvpOpen, setIsRsvpOpen] = useState(false)
   const [isInfoOpen, setIsInfoOpen] = useState(false)
@@ -1712,8 +1751,18 @@ function App() {
   const [availabilityError, setAvailabilityError] = useState('')
   const [songSuggestionForm, setSongSuggestionForm] = useState<SongSuggestionFormData>(initialSongSuggestionFormData)
   const [songSuggestionFeedback, setSongSuggestionFeedback] = useState('')
+  const [activeTrackIndex, setActiveTrackIndex] = useState(0)
+  const [isAudioMuted, setIsAudioMuted] = useState(false)
+  const [hasUserMutedAudio, setHasUserMutedAudio] = useState(false)
+  const [hasAudioStarted, setHasAudioStarted] = useState(false)
+  const [isAutoplayPending, setIsAutoplayPending] = useState(false)
+  const [isPlayerExpanded, setIsPlayerExpanded] = useState(false)
+  const [audioVolume, setAudioVolume] = useState(0.72)
+  const [audioProgressSeconds, setAudioProgressSeconds] = useState(0)
+  const [audioDurationSeconds, setAudioDurationSeconds] = useState(0)
 
   const invitationType = getInvitationType(activeInvitation)
+  const activeTrack = weddingSoundtrack[activeTrackIndex] ?? null
   const attendingMembers = familyMembers.filter((member) => member.attending)
   const attendingCount = attendingMembers.length
   const isDecliningInvitation = attendingCount === 0
@@ -2051,6 +2100,92 @@ function App() {
       isCancelled = true
     }
   }, [activeInvitation.code, isKnownInvitation, supabase])
+
+  useEffect(() => {
+    if (!audioRef.current || !activeTrack) {
+      return
+    }
+
+    const audioElement = audioRef.current
+    let isCancelled = false
+
+    async function attemptPlayback(withSound: boolean) {
+      audioElement.volume = audioVolume
+      audioElement.loop = false
+      audioElement.autoplay = true
+      audioElement.muted = withSound ? false : isAudioMuted || hasUserMutedAudio
+
+      try {
+        await audioElement.play()
+
+        if (!isCancelled) {
+          setHasAudioStarted(true)
+          setIsAutoplayPending(false)
+
+          if (withSound) {
+            setIsAudioMuted(false)
+            setHasUserMutedAudio(false)
+          }
+        }
+      } catch {
+        if (!isCancelled) {
+          setHasAudioStarted(false)
+          setIsAutoplayPending(true)
+        }
+      }
+    }
+
+    function handleFirstInteraction() {
+      if (hasUserMutedAudio) {
+        if (audioElement.paused) {
+          void attemptPlayback(false)
+        }
+        return
+      }
+
+      if (!audioElement.paused && !audioElement.muted) {
+        setIsAutoplayPending(false)
+        return
+      }
+
+      void attemptPlayback(true)
+    }
+
+    void attemptPlayback(false)
+
+    document.addEventListener('touchstart', handleFirstInteraction, true)
+    document.addEventListener('pointerdown', handleFirstInteraction, true)
+    document.addEventListener('click', handleFirstInteraction, true)
+    document.addEventListener('keydown', handleFirstInteraction, true)
+
+    return () => {
+      isCancelled = true
+      document.removeEventListener('touchstart', handleFirstInteraction, true)
+      document.removeEventListener('pointerdown', handleFirstInteraction, true)
+      document.removeEventListener('click', handleFirstInteraction, true)
+      document.removeEventListener('keydown', handleFirstInteraction, true)
+    }
+  }, [activeTrackIndex, activeTrack, audioVolume, hasUserMutedAudio, isAudioMuted])
+
+  useEffect(() => {
+    const audio = audioRef.current
+
+    if (!audio) {
+      return
+    }
+
+    audio.muted = isAudioMuted
+  }, [isAudioMuted])
+
+  useEffect(() => {
+    const audio = audioRef.current
+
+    if (!audio) {
+      return
+    }
+
+    audio.volume = audioVolume
+  }, [audioVolume])
 
   useEffect(() => {
     if (!isRsvpOpen || !isKnownInvitation || !supabase) {
@@ -2683,8 +2818,178 @@ function App() {
     )
   }
 
+  async function handleToggleAudioMute() {
+    const audio = audioRef.current
+
+    if (!audio) {
+      return
+    }
+
+    if (audio.paused || isAutoplayPending) {
+      if (isAudioMuted) {
+        setHasUserMutedAudio(false)
+      }
+
+      try {
+        audio.muted = isAudioMuted ? false : true
+        await audio.play()
+        setHasAudioStarted(true)
+        setIsAutoplayPending(false)
+
+        if (isAudioMuted) {
+          setIsAudioMuted(false)
+          setHasUserMutedAudio(false)
+        } else {
+          setIsAudioMuted(true)
+          setHasUserMutedAudio(true)
+        }
+
+        return
+      } catch {
+        setHasAudioStarted(false)
+      }
+    }
+
+    const nextMuted = !isAudioMuted
+    audio.muted = nextMuted
+    setIsAudioMuted(nextMuted)
+    setHasUserMutedAudio(nextMuted)
+  }
+
+  function handleAudioProgressChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const audio = audioRef.current
+
+    if (!audio) {
+      return
+    }
+
+    const nextTime = Number(event.target.value)
+    audio.currentTime = nextTime
+    setAudioProgressSeconds(nextTime)
+  }
+
+  function handleAudioVolumeChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const nextVolume = Math.min(Math.max(Number(event.target.value), 0), 1)
+    setAudioVolume(nextVolume)
+    setIsAudioMuted(nextVolume === 0)
+  }
+
+  function playNextTrack() {
+    setAudioProgressSeconds(0)
+    setAudioDurationSeconds(0)
+    setActiveTrackIndex((currentIndex) => (currentIndex + 1) % weddingSoundtrack.length)
+  }
+
+  function playPreviousTrack() {
+    setAudioProgressSeconds(0)
+    setAudioDurationSeconds(0)
+    setActiveTrackIndex((currentIndex) => (currentIndex - 1 + weddingSoundtrack.length) % weddingSoundtrack.length)
+  }
+
   return (
     <>
+      {activeTrack ? (
+        <div className={`music-player ${isPlayerExpanded ? 'is-expanded' : ''}`} aria-label="Reproductor musical de la invitación">
+          <audio
+            ref={audioRef}
+            autoPlay
+            loop
+            playsInline
+            preload="auto"
+            src={activeTrack.src}
+            onLoadedMetadata={(event) => {
+              setAudioDurationSeconds(event.currentTarget.duration || 0)
+              setAudioProgressSeconds(event.currentTarget.currentTime || 0)
+            }}
+            onPause={() => setHasAudioStarted(false)}
+            onPlay={() => setHasAudioStarted(true)}
+            onTimeUpdate={(event) => setAudioProgressSeconds(event.currentTarget.currentTime || 0)}
+            onEnded={playNextTrack}
+          />
+          <button
+            aria-label={isAudioMuted ? 'Activar sonido' : 'Silenciar música'}
+            className={`music-player-toggle ${isAudioMuted ? 'is-muted' : ''}`}
+            onClick={handleToggleAudioMute}
+            title={isAudioMuted ? 'Activar sonido' : 'Silenciar música'}
+            type="button"
+          >
+            <span className="music-player-speaker" aria-hidden="true">
+              {isAudioMuted ? '🔇' : '🔊'}
+            </span>
+          </button>
+          <button
+            aria-expanded={isPlayerExpanded}
+            aria-label={isPlayerExpanded ? 'Ocultar controles de música' : 'Ver controles de música'}
+            className="music-player-main"
+            onClick={() => setIsPlayerExpanded((current) => !current)}
+            type="button"
+          >
+            <div className="music-player-nav" aria-hidden="true">
+              <span>‹</span>
+              <span>›</span>
+            </div>
+            <div className="music-player-copy">
+              <strong>{activeTrack.title}</strong>
+              <span>
+                {activeTrack.artist}
+                {hasAudioStarted ? '' : isAutoplayPending ? ' · autoplay pendiente' : ''}
+              </span>
+            </div>
+            <div className="music-player-progress music-player-progress--inline">
+              <input
+                aria-label="Progreso de la canción"
+                className="music-player-progress-bar"
+                max={audioDurationSeconds || 0}
+                min={0}
+                onChange={handleAudioProgressChange}
+                step={1}
+                type="range"
+                value={Math.min(audioProgressSeconds, audioDurationSeconds || 0)}
+              />
+            </div>
+            <span className="music-player-caret" aria-hidden="true">{isPlayerExpanded ? '−' : '+'}</span>
+          </button>
+          {isPlayerExpanded ? (
+            <div className="music-player-panel">
+              <div className="music-player-track-actions">
+                <button
+                  aria-label="Canción anterior"
+                  className="music-player-track-button"
+                  onClick={playPreviousTrack}
+                  type="button"
+                >
+                  ‹
+                </button>
+                <button
+                  aria-label="Siguiente canción"
+                  className="music-player-track-button"
+                  onClick={playNextTrack}
+                  type="button"
+                >
+                  ›
+                </button>
+              </div>
+              <div className="music-player-times">
+                <span>{formatTrackTime(audioProgressSeconds)}</span>
+                <span>{formatTrackTime(audioDurationSeconds)}</span>
+              </div>
+              <div className="music-player-volume">
+                <span className="music-player-volume-label" aria-hidden="true">Vol</span>
+                <input
+                  aria-label="Nivel de volumen"
+                  className="music-player-volume-slider"
+                  max={1}
+                  min={0}
+                  onChange={handleAudioVolumeChange}
+                  step={0.01}
+                  type="range"
+                  value={isAudioMuted ? 0 : audioVolume}
+                />
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <main className="invitation-shell">
         <section className="hero-section">
           <div className="hero-media">
@@ -2693,6 +2998,13 @@ function App() {
           <div className="hero-content">
             <p className="hero-kicker">Nos casamos</p>
             <span className="ornament" aria-hidden="true"></span>
+            <div className="sycamore-sprig" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
             <h1>Laura & Juan</h1>
             <p className="hero-quote">
               Después de recorrer muchos caminos juntos, con mucha alegría te invitamos a celebrar el inicio de nuestra nueva aventura.
@@ -2720,11 +3032,25 @@ function App() {
           <h2 className="invitees-title">
             {isKnownInvitation ? activeInvitation.label : 'Tu invitación personalizada'}
           </h2>
+          <div className="sycamore-sprig sycamore-sprig--centered" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
         </section>
 
         <section className="countdown-section" aria-label="Cuenta regresiva para la boda">
           <h2 className="countdown-title">Cuenta regresiva para el gran día</h2>
           <p className="countdown-date">29 de Mayo de 2027 · Hotel Isla Múcura</p>
+          <div className="sycamore-sprig sycamore-sprig--centered" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
           <div className="countdown-card">
             {Object.entries(countdown).map(([unit, value]) => (
               <div className="countdown-item" key={unit}>
@@ -2754,6 +3080,13 @@ function App() {
           <p className="venue-copy">
             Hemos elegido este rincón del Caribe para celebrar juntos un fin de semana inolvidable.
           </p>
+          <div className="sycamore-sprig sycamore-sprig--centered" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
           <div className="venue-actions">
             <a
               className="primary-button"
@@ -2814,6 +3147,13 @@ function App() {
           <div className="section-heading">
             <p className="eyebrow">Retratos de Nuestra Historia</p>
             <h2>Un recorrido por momentos, viajes y miradas que han hecho aún más bonito este amor.</h2>
+            <div className="sycamore-sprig sycamore-sprig--centered" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
           </div>
           <div className="portraits-carousel">
             <button
@@ -2895,6 +3235,13 @@ function App() {
             <p className="contact-copy">
               Queremos que disfrutes este viaje con tranquilidad. Si necesitas ayuda, puedes escribirnos directamente.
             </p>
+            <div className="sycamore-sprig sycamore-sprig--centered" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
           </div>
           <div className="contact-grid">
             <article className="contact-card">
