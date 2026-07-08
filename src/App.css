@@ -24,7 +24,7 @@
   line-height: 0.98;
   letter-spacing: 0;
   margin: 0 0 12px;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .hero-section,
@@ -1209,11 +1209,10 @@
   gap: 14px;
   align-items: center;
   padding: 12px 4px;
-  width: fit-content;
+  width: 100%;
   border-radius: 0;
   border: none;
   background: transparent;
-  white-space: nowrap;
   transition:
     border-color 180ms ease,
     transform 180ms ease,
@@ -1328,7 +1327,7 @@
   font-size: 1.02rem;
   color: #7b8da3;
   line-height: 1.2;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .member-card.is-attending .member-card-name {
@@ -1401,7 +1400,7 @@
   font-size: 0.92rem;
   color: var(--ink-strong);
   cursor: pointer;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .primary-contact-toggle input {
@@ -1540,6 +1539,10 @@
 }
 
 @media (max-width: 900px) {
+  .modal-backdrop {
+    padding: 16px;
+  }
+
   .hero-meta,
   .countdown-card,
   .personalized-grid,
@@ -1556,7 +1559,8 @@
   }
 
   .invitation-shell {
-    width: min(100% - 20px, 1120px);
+    width: calc(100% - 20px);
+    max-width: 1120px;
     padding-top: 20px;
   }
 
@@ -1571,6 +1575,11 @@
   .hero-content {
     padding: 36px 18px 42px;
     text-align: center;
+  }
+
+  .hero-section h1 {
+    font-size: clamp(3.1rem, 14vw, 4.9rem);
+    line-height: 0.96;
   }
 
   .hero-copy {
@@ -1627,6 +1636,16 @@
     grid-template-columns: 1fr;
   }
 
+  .member-card {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .attendance-choice-group {
+    gap: 10px;
+  }
+
   .portrait-slide {
     aspect-ratio: 3 / 5;
   }
@@ -1657,6 +1676,68 @@
 .portrait-arrow.is-right {
   right: 10px;
 }
+}
+
+@media (max-width: 600px) {
+  .modal-backdrop {
+    padding: 10px;
+  }
+
+  .rsvp-modal,
+  .info-modal,
+  .party-modal {
+    border-radius: 24px;
+  }
+
+  .invitation-shell {
+    width: calc(100% - 12px);
+    padding-top: 12px;
+    padding-bottom: 42px;
+  }
+
+  .hero-section {
+    border-radius: 26px;
+  }
+
+  .hero-media {
+    min-height: 340px;
+  }
+
+  .hero-content {
+    padding: 28px 16px 34px;
+  }
+
+  .hero-section h1 {
+    font-size: clamp(2.7rem, 15vw, 4rem);
+  }
+
+  .eyebrow,
+  .hero-kicker,
+  .meta-label {
+    letter-spacing: 0.22rem;
+  }
+
+  .hero-meta {
+    gap: 12px;
+  }
+
+  .countdown-item {
+    min-width: 0;
+  }
+
+  .countdown-ring {
+    width: min(100%, 180px);
+    margin: 0 auto;
+  }
+
+  .invitees-title,
+  .venue-title,
+  .attendance-info-title,
+  .contact-section h2,
+  .party-section h2,
+  .portraits-section h2 {
+    overflow-wrap: anywhere;
+  }
 }
 
 .admin-shell {
