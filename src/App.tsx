@@ -4,8 +4,13 @@ import { supabase } from './lib/supabase'
 import siNoTeTengoTrack from './assets/audio/si-no-te-tengo.mp3'
 import theVowTrack from './assets/audio/the-vow.mp3'
 import volviANacerTrack from './assets/audio/volvi-a-nacer.mp3'
+import botanicoCierre from './assets/decor/botanico-cierre.png'
+import dressCodeEllas from './assets/decor/dress-code-ellas.jpeg'
+import dressCodeEllos from './assets/decor/dress-code-ellos.jpeg'
+import botanicoPortada from './assets/decor/botanico-portada.png'
+import sicomoroAcuarela from './assets/decor/sicomoro-acuarela.jpg'
 import portadaLauraJuan from './assets/images/portada-laura-juan.jpeg'
-import infoIslaMucura from './assets/info/info-isla-mucura.jpeg'
+import tarifasHotelActualizadas from './assets/info/tarifas-hotel-actualizadas.jpeg'
 import retratos01 from './assets/gallery/retratos-01.jpeg'
 import retratos02 from './assets/gallery/retratos-02.jpeg'
 import retratos03 from './assets/gallery/retratos-03.jpeg'
@@ -192,6 +197,15 @@ type SongSuggestionFormData = {
   songName: string
   artistName: string
   songLink: string
+}
+
+type SongSuggestionRecord = {
+  id: string
+  guest_name: string | null
+  song_name: string | null
+  artist_name: string | null
+  song_link: string | null
+  created_at?: string | null
 }
 
 type SoundtrackTrack = {
@@ -992,6 +1006,12 @@ function downloadAdminReservationsWorkbook(reservations: AdminReservationRecord[
         ...attendee,
         isPrimaryContact: index === allowedPrimaryIndex,
       }
+    }).sort((left, right) => {
+      if (left.isPrimaryContact === right.isPrimaryContact) {
+        return 0
+      }
+
+      return left.isPrimaryContact ? -1 : 1
     })
 
     if (!normalizedAttendees.length) {
@@ -1266,6 +1286,68 @@ function downloadCoupleInvitationsWorkbook(reservations: AdminReservationRecord[
   window.URL.revokeObjectURL(url)
 }
 
+function downloadSongSuggestionsWorkbook(songSuggestions: SongSuggestionRecord[]) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const songHeader = ['Nombre Asistente', 'Nombre de cancion', 'Autor', 'Link']
+  const songRowsXml: string[] = [createSpreadsheetRow(songHeader, true)]
+
+  songSuggestions.forEach((songSuggestion) => {
+    songRowsXml.push(
+      createSpreadsheetRow([
+        songSuggestion.guest_name ?? '',
+        songSuggestion.song_name ?? '',
+        songSuggestion.artist_name ?? '',
+        songSuggestion.song_link ?? '',
+      ]),
+    )
+  })
+
+  const workbookXml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook
+  xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:x="urn:schemas-microsoft-com:office:excel"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:html="http://www.w3.org/TR/REC-html40"
+>
+  <Styles>
+    <Style ss:ID="Default" ss:Name="Normal">
+      <Alignment ss:Vertical="Bottom" ss:WrapText="1"/>
+      <Borders/>
+      <Font ss:FontName="Calibri" ss:Size="11"/>
+      <Interior/>
+      <NumberFormat/>
+      <Protection/>
+    </Style>
+    <Style ss:ID="Header">
+      <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
+      <Interior ss:Color="#EAF6F1" ss:Pattern="Solid"/>
+    </Style>
+  </Styles>
+  <Worksheet ss:Name="Canciones sugeridas">
+    <Table>
+      ${songRowsXml.join('')}
+    </Table>
+  </Worksheet>
+</Workbook>`
+
+  const blob = new Blob([workbookXml], { type: 'application/vnd.ms-excel' })
+  const url = window.URL.createObjectURL(blob)
+  const link = window.document.createElement('a')
+  const dateStamp = new Date().toISOString().slice(0, 10)
+
+  link.href = url
+  link.download = `canciones-sugeridas-laura-juan-${dateStamp}.xls`
+  window.document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+}
+
 function AdminPanel() {
   const [accessCode, setAccessCode] = useState('')
   const [isAuthorized, setIsAuthorized] = useState(() => {
@@ -1276,6 +1358,7 @@ function AdminPanel() {
     return window.sessionStorage.getItem(ADMIN_SESSION_STORAGE_KEY) === 'granted'
   })
   const [reservations, setReservations] = useState<AdminReservationRecord[]>([])
+  const [songSuggestions, setSongSuggestions] = useState<SongSuggestionRecord[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -1294,13 +1377,19 @@ function AdminPanel() {
       setIsLoading(true)
       setErrorMessage('')
 
-      const { data, error } = await supabaseClient.rpc('get_wedding_admin_reservations')
+      const [{ data, error }, { data: songsData, error: songsError }] = await Promise.all([
+        supabaseClient.rpc('get_wedding_admin_reservations'),
+        supabaseClient
+          .from('song_suggestions')
+          .select('id, guest_name, song_name, artist_name, song_link, created_at')
+          .order('created_at', { ascending: false }),
+      ])
 
       if (isCancelled) {
         return
       }
 
-      if (error) {
+      if (error || songsError) {
         setErrorMessage('No pudimos cargar las reservas en este momento.')
         setIsLoading(false)
         return
@@ -1318,6 +1407,7 @@ function AdminPanel() {
       }))
 
       setReservations(nextReservations)
+      setSongSuggestions(((songsData ?? []) as SongSuggestionRecord[]))
       setSelectedReservationId((current) => current ?? nextReservations[0]?.id ?? null)
       setLastUpdated(new Date().toISOString())
       setIsLoading(false)
@@ -1474,6 +1564,7 @@ function AdminPanel() {
     setIsAuthorized(false)
     setAccessCode('')
     setReservations([])
+    setSongSuggestions([])
     setSelectedReservationId(null)
   }
 
@@ -1490,6 +1581,16 @@ function AdminPanel() {
   function handleExportCoupleWorkbook() {
     setErrorMessage('')
     downloadCoupleInvitationsWorkbook(reservations)
+  }
+
+  function handleExportSongsWorkbook() {
+    if (!songSuggestions.length) {
+      setErrorMessage('Aún no hay canciones sugeridas para exportar.')
+      return
+    }
+
+    setErrorMessage('')
+    downloadSongSuggestionsWorkbook(songSuggestions)
   }
 
   if (!isAuthorized) {
@@ -1538,6 +1639,9 @@ function AdminPanel() {
           </button>
           <button className="secondary-button" onClick={handleExportCoupleWorkbook} type="button">
             Excel novios
+          </button>
+          <button className="secondary-button" onClick={handleExportSongsWorkbook} type="button">
+            Excel canciones
           </button>
           <button className="secondary-button" onClick={handleLogout} type="button">
             Cerrar panel
@@ -2996,7 +3100,13 @@ function App() {
             <img alt="Laura y Juan abrazados junto al lago" className="hero-image" src={portadaLauraJuan} />
           </div>
           <div className="hero-content">
-            <p className="hero-kicker">Nos casamos</p>
+            <img
+              alt=""
+              aria-hidden="true"
+              className="hero-tree-watercolor"
+              src={sicomoroAcuarela}
+            />
+            <p className="hero-kicker">¡Nos casamos!</p>
             <span className="ornament" aria-hidden="true"></span>
             <div className="sycamore-sprig" aria-hidden="true">
               <span></span>
@@ -3028,6 +3138,12 @@ function App() {
         </section>
 
         <section className="invitees-section">
+          <img
+            alt=""
+            aria-hidden="true"
+            className="section-botanical-corner section-botanical-corner--invitees"
+            src={botanicoPortada}
+          />
           <p className="invitees-label">{activeInvitation.members.length === 1 ? 'Querido/a:' : 'Queridos:'}</p>
           <h2 className="invitees-title">
             {isKnownInvitation ? activeInvitation.label : 'Tu invitación personalizada'}
@@ -3042,6 +3158,12 @@ function App() {
         </section>
 
         <section className="countdown-section" aria-label="Cuenta regresiva para la boda">
+          <img
+            alt=""
+            aria-hidden="true"
+            className="section-botanical-corner section-botanical-corner--countdown"
+            src={botanicoCierre}
+          />
           <h2 className="countdown-title">Cuenta regresiva para el gran día</h2>
           <p className="countdown-date">29 de Mayo de 2027 · Hotel Isla Múcura</p>
           <div className="sycamore-sprig sycamore-sprig--centered" aria-hidden="true">
@@ -3074,6 +3196,12 @@ function App() {
         </section>
 
         <section className="venue-section">
+          <img
+            alt=""
+            aria-hidden="true"
+            className="section-botanical-corner section-botanical-corner--venue"
+            src={botanicoPortada}
+          />
           <p className="eyebrow">Lugar</p>
           <h2 className="venue-title">Hostel Isla Múcura</h2>
           <p className="venue-subcopy">Frente al mar en el jardin del hotel</p>
@@ -3112,6 +3240,12 @@ function App() {
         </section>
 
         <section className="attendance-info-section">
+          <img
+            alt=""
+            aria-hidden="true"
+            className="section-botanical-corner section-botanical-corner--attendance"
+            src={botanicoCierre}
+          />
           <p className="eyebrow">Confirmación</p>
           <h2 className="attendance-info-title">Información importante</h2>
           <p className="attendance-info-copy">
@@ -3144,6 +3278,12 @@ function App() {
         </section>
 
         <section className="portraits-section" aria-label="Retratos de Nuestra Historia">
+          <img
+            alt=""
+            aria-hidden="true"
+            className="section-botanical-corner section-botanical-corner--portraits"
+            src={botanicoPortada}
+          />
           <div className="section-heading">
             <p className="eyebrow">Retratos de Nuestra Historia</p>
             <h2>Un recorrido por momentos, viajes y miradas que han hecho aún más bonito este amor.</h2>
@@ -3205,6 +3345,12 @@ function App() {
         </section>
 
         <section className="party-section" aria-label="Fiesta">
+          <img
+            alt=""
+            aria-hidden="true"
+            className="section-botanical-corner section-botanical-corner--party"
+            src={botanicoCierre}
+          />
           <div className="section-heading">
             <p className="eyebrow">Fiesta</p>
             <h2>Hagamos juntos una fiesta épica.</h2>
@@ -3229,6 +3375,12 @@ function App() {
         </section>
 
         <section className="contact-section" aria-label="Contacto de los novios">
+          <img
+            alt=""
+            aria-hidden="true"
+            className="section-botanical-corner section-botanical-corner--contact"
+            src={botanicoPortada}
+          />
           <div className="section-heading">
             <p className="eyebrow">Contacto</p>
             <h2>Si tienes dudas o preguntas, aquí estamos para ti</h2>
@@ -3246,14 +3398,14 @@ function App() {
           <div className="contact-grid">
             <article className="contact-card">
               <span className="meta-label">Novia</span>
-              <strong>Laura</strong>
+              <strong>Lau</strong>
               <a className="secondary-button" href="https://wa.me/573197659146" rel="noreferrer" target="_blank">
                 +57 3197659146
               </a>
             </article>
             <article className="contact-card">
               <span className="meta-label">Novio</span>
-              <strong>Juan Camilo</strong>
+              <strong>Juancho</strong>
               <a className="secondary-button" href="https://wa.me/573195852884" rel="noreferrer" target="_blank">
                 +57 3195852884
               </a>
@@ -3289,13 +3441,13 @@ function App() {
                   ? (
                     <>
                       Ya habías confirmado esta invitación. Aquí puedes editar tu información y guardar cambios hasta el{' '}
-                      <strong className="rsvp-deadline-highlight">1 de Agosto</strong>.
+                      <strong className="rsvp-deadline-highlight">8 de Agosto</strong>.
                     </>
                   )
                   : (
                     <>
                       Completa la información de tu invitación. Si necesitas hacer cambios, podrás editarla aquí mismo hasta el{' '}
-                      <strong className="rsvp-deadline-highlight">1 de Agosto</strong>.
+                      <strong className="rsvp-deadline-highlight">8 de Agosto</strong>.
                     </>
                   )}
             </p>
@@ -3989,10 +4141,10 @@ function App() {
                     <li>Una vez realizado un abono, el hotel no realiza devoluciones.</li>
                     <li>
                       Tienes tiempo de confirmar o editar tu reserva hasta el{' '}
-                      <span className="lodging-deadline">1 de Agosto de 2026</span>
+                      <span className="lodging-deadline">8 de Agosto de 2026</span>
                     </li>
                     <li>
-                      Es importante que llegues a La Bodeguita de Cartagena antes de las 11:00 a. m., ya que el
+                      Es importante que llegues a La Bodeguita de Cartagena antes de las 9:00 a. m., ya que el
                       transporte hacia la Isla Múcura sale antes de esa hora.
                     </li>
                   </ul>
@@ -4000,9 +4152,9 @@ function App() {
               </div>
             </article>
             <img
-              alt="Información de la boda en Isla Múcura con plan, fechas, tarifas y datos logísticos"
+              alt="Tarifas actualizadas del hotel Isla Múcura"
               className="info-modal-image"
-              src={infoIslaMucura}
+              src={tarifasHotelActualizadas}
             />
           </section>
         </div>
@@ -4013,7 +4165,7 @@ function App() {
           <section
             aria-labelledby="song-suggestion-modal-title"
             aria-modal="true"
-            className="party-modal"
+            className="party-modal song-modal"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
           >
@@ -4027,6 +4179,9 @@ function App() {
             </button>
             <p className="eyebrow">Música</p>
             <h2 id="song-suggestion-modal-title">Sugerir canción</h2>
+            <p className="modal-copy song-modal-copy">
+              Cuéntanos cuál canción te haría ilusión escuchar en nuestra fiesta.
+            </p>
             <form className="party-form" onSubmit={handleSongSuggestionSubmit}>
               <label>
                 Tu Nombre
@@ -4101,8 +4256,22 @@ function App() {
             </button>
             <p className="eyebrow">Dress code</p>
             <h2 id="dress-code-modal-title">White party</h2>
-            <p className="modal-copy">Todos de blanco</p>
-            <p className="modal-copy">Estilo <span className="dress-code-accent">boho chic</span></p>
+            <p className="modal-copy dress-code-copy">
+              <span className="dress-code-highlight">Todos de blanco</span>
+            </p>
+            <p className="modal-copy dress-code-copy">
+              Estilo <span className="dress-code-accent">boho chic</span>
+            </p>
+            <div className="dress-code-gallery">
+              <article className="dress-code-card">
+                <span className="meta-label">Ellas</span>
+                <img alt="Inspiración de vestuario para mujeres" className="dress-code-image" src={dressCodeEllas} />
+              </article>
+              <article className="dress-code-card">
+                <span className="meta-label">Ellos</span>
+                <img alt="Inspiración de vestuario para hombres" className="dress-code-image" src={dressCodeEllos} />
+              </article>
+            </div>
           </section>
         </div>
       ) : null}
@@ -4141,8 +4310,10 @@ function App() {
               <strong>IMPORTANTE:</strong> No se hará devoluciones en caso de que ya haya hecho algún pago.
             </p>
             <p className="modal-copy">
-              Enviar los comprobantes de pago al correo{' '}
-              <a href="mailto:vanewambers@gmail.com">vanewambers@gmail.com</a>
+              Enviar los comprobantes de pago al WA de{' '}
+              <a href="https://wa.me/573197659146" rel="noreferrer" target="_blank">Lau</a>
+              {' '}o{' '}
+              <a href="https://wa.me/573195852884" rel="noreferrer" target="_blank">Juancho</a>.
             </p>
           </section>
         </div>

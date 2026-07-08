@@ -1,7 +1,53 @@
 .invitation-shell {
+  position: relative;
+  isolation: isolate;
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
   padding: 32px 0 72px;
+}
+
+.invitation-shell::before,
+.invitation-shell::after {
+  content: none;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+  background-color: #f3f8f2;
+}
+
+body {
+  position: relative;
+  isolation: isolate;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 250, 244, 0.08), rgba(247, 252, 248, 0.06)),
+    url('./assets/decor/fondo-acuarela-romantica.jpg');
+  background-position: center top;
+  background-repeat: repeat;
+  background-size: 680px auto;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  background: transparent;
 }
 
 .music-player {
@@ -209,7 +255,7 @@
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(127, 187, 166, 0.18);
-  background: rgba(255, 252, 247, 0.88);
+  background: rgba(255, 252, 247, 0.58);
   box-shadow: 0 24px 80px rgba(127, 187, 166, 0.12);
 }
 
@@ -263,6 +309,26 @@
   bottom: -110px;
 }
 
+.hero-section .hero-media::before,
+.hero-section .hero-content::after,
+.portraits-section::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.hero-section .hero-media::before {
+  inset: 18px 18px 18px 18px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 245, 232, 0.8);
+  box-shadow:
+    inset 0 0 0 12px rgba(255, 255, 255, 0.08),
+    inset 0 0 0 28px rgba(188, 224, 204, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(196, 230, 210, 0.18), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(255, 243, 228, 0.16), transparent 34%);
+}
+
 .hero-media,
 .hero-content {
   position: relative;
@@ -292,6 +358,20 @@
     linear-gradient(180deg, rgba(252, 255, 252, 0.88), rgba(249, 242, 231, 0.95));
 }
 
+.hero-tree-watercolor {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: 0;
+  width: min(460px, 94%);
+  max-width: 100%;
+  transform: translate(-50%, -50%);
+  opacity: 0.28;
+  filter: saturate(1.14) contrast(1.04);
+  pointer-events: none;
+  user-select: none;
+}
+
 .hero-content::before {
   content: '';
   position: absolute;
@@ -303,6 +383,15 @@
     radial-gradient(circle at bottom right, rgba(221, 238, 223, 0.26), transparent 28%);
   opacity: 0.9;
   pointer-events: none;
+}
+
+.hero-content::after {
+  inset: 28px;
+  border-radius: 24px;
+  border: 1px solid rgba(195, 168, 108, 0.22);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 251, 243, 0.46),
+    inset 0 0 0 10px rgba(255, 255, 255, 0.04);
 }
 
 .ornament {
@@ -396,6 +485,49 @@
   color: #78a796;
 }
 
+.countdown-title,
+.venue-title,
+.attendance-info-title,
+.invitees-title,
+.section-heading h2,
+.contact-section h2,
+.party-section h2,
+.portraits-section h2 {
+  position: relative;
+}
+
+.countdown-title::before,
+.venue-title::before,
+.attendance-info-title::before,
+.invitees-title::before,
+.section-heading h2::before,
+.contact-section h2::before,
+.party-section h2::before,
+.portraits-section h2::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  width: min(420px, 118%);
+  height: 1.45em;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle at center, rgba(203, 233, 216, 0.52), rgba(203, 233, 216, 0.18) 52%, transparent 72%);
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.hero-section h1::before,
+.invitees-title::before,
+.attendance-info-title::before,
+.venue-title::before,
+.section-heading h2::before {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(209, 237, 222, 0.62), rgba(209, 237, 222, 0.22) 52%, transparent 74%),
+    radial-gradient(circle at 26% 42%, rgba(255, 246, 233, 0.34), transparent 40%);
+}
+
 .hero-kicker {
   margin: 0;
   font-size: 1rem;
@@ -436,7 +568,26 @@
 }
 
 .hero-meta div {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 6px;
   padding: 18px;
+  text-align: center;
+}
+
+.hero-meta strong {
+  display: block;
+  margin: 0;
+  font-size: 1.22rem;
+  line-height: 1.18;
+  color: var(--ink-strong);
+}
+
+.hero-meta .meta-support-copy {
+  margin-top: 2px;
+  max-width: 20ch;
+  text-align: center;
 }
 
 .meta-label,
@@ -626,9 +777,9 @@
   text-align: center;
   border: 1px solid rgba(127, 187, 166, 0.18);
   background:
-    radial-gradient(circle at top, rgba(191, 227, 211, 0.18), transparent 34%),
-    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(246, 250, 247, 0.96));
-  box-shadow: 0 22px 58px rgba(127, 187, 166, 0.08);
+    radial-gradient(circle at top, rgba(164, 215, 193, 0.32), transparent 38%),
+    linear-gradient(180deg, rgba(250, 255, 249, 0.99), rgba(232, 245, 236, 0.98));
+  box-shadow: 0 22px 58px rgba(127, 187, 166, 0.13);
   overflow: hidden;
 }
 
@@ -643,6 +794,76 @@
     radial-gradient(circle at 34% 34%, rgba(127, 187, 166, 0.18), transparent 58%),
     radial-gradient(circle at 68% 48%, rgba(191, 227, 211, 0.22), transparent 52%);
   pointer-events: none;
+}
+
+.section-botanical-corner {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.4;
+  filter: saturate(1.24) contrast(1.05);
+}
+
+.section-botanical-corner--invitees {
+  top: -38px;
+  right: -22px;
+  width: min(250px, 42%);
+  transform: rotate(6deg);
+}
+
+.section-botanical-corner--attendance {
+  left: -26px;
+  bottom: -42px;
+  width: min(250px, 42%);
+  transform: rotate(-8deg);
+}
+
+.section-botanical-corner--countdown {
+  top: -42px;
+  left: -28px;
+  width: min(240px, 38%);
+  transform: rotate(-10deg);
+}
+
+.section-botanical-corner--venue {
+  right: -24px;
+  bottom: -40px;
+  width: min(245px, 40%);
+  transform: rotate(10deg);
+}
+
+.section-botanical-corner--portraits {
+  right: -26px;
+  bottom: -34px;
+  width: min(250px, 38%);
+  transform: rotate(7deg);
+}
+
+.section-botanical-corner--party {
+  left: -18px;
+  top: -30px;
+  width: min(248px, 40%);
+  opacity: 0.42;
+  transform: rotate(-9deg);
+}
+
+.section-botanical-corner--contact {
+  right: -22px;
+  top: -34px;
+  width: min(244px, 38%);
+  transform: rotate(8deg);
+}
+
+.invitees-section > *:not(.section-botanical-corner),
+.attendance-info-section > *:not(.section-botanical-corner),
+.countdown-section > *:not(.section-botanical-corner),
+.venue-section > *:not(.section-botanical-corner),
+.portraits-section > *:not(.section-botanical-corner),
+.party-section > *:not(.section-botanical-corner),
+.contact-section > *:not(.section-botanical-corner) {
+  position: relative;
+  z-index: 1;
 }
 
 .invitees-label {
@@ -707,21 +928,35 @@
   pointer-events: none;
 }
 
+.portraits-section::after {
+  inset: 18px;
+  border-radius: 30px;
+  border: 1px solid rgba(193, 168, 111, 0.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 249, 238, 0.7),
+    inset 0 0 0 18px rgba(255, 255, 255, 0.05);
+  background:
+    radial-gradient(circle at top right, rgba(214, 236, 223, 0.12), transparent 26%),
+    radial-gradient(circle at bottom left, rgba(255, 244, 230, 0.14), transparent 26%);
+}
+
 .party-section {
+  position: relative;
   border: 1px solid rgba(127, 187, 166, 0.18);
   background:
-    radial-gradient(circle at bottom left, rgba(191, 227, 211, 0.18), transparent 34%),
-    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(247, 250, 246, 0.96));
-  box-shadow: 0 22px 58px rgba(127, 187, 166, 0.08);
+    radial-gradient(circle at bottom left, rgba(164, 215, 193, 0.32), transparent 38%),
+    linear-gradient(180deg, rgba(251, 255, 249, 0.99), rgba(233, 245, 237, 0.98));
+  box-shadow: 0 22px 58px rgba(127, 187, 166, 0.13);
+  overflow: hidden;
 }
 
 .contact-section {
   position: relative;
   border: 1px solid rgba(127, 187, 166, 0.18);
   background:
-    radial-gradient(circle at top left, rgba(191, 227, 211, 0.16), transparent 34%),
-    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(244, 249, 246, 0.96));
-  box-shadow: 0 22px 58px rgba(127, 187, 166, 0.08);
+    radial-gradient(circle at top left, rgba(164, 215, 193, 0.3), transparent 38%),
+    linear-gradient(180deg, rgba(251, 255, 249, 0.99), rgba(231, 244, 236, 0.98));
+  box-shadow: 0 22px 58px rgba(127, 187, 166, 0.13);
   overflow: hidden;
 }
 
@@ -766,6 +1001,7 @@
 }
 
 .party-card {
+  position: relative;
   display: grid;
   align-content: start;
   gap: 16px;
@@ -777,6 +1013,7 @@
 }
 
 .contact-card {
+  position: relative;
   display: grid;
   justify-items: center;
   align-content: start;
@@ -787,6 +1024,47 @@
   background: rgba(252, 255, 252, 0.84);
   box-shadow: 0 16px 36px rgba(127, 187, 166, 0.08);
   text-align: center;
+}
+
+.party-card::before,
+.contact-card::before,
+.countdown-card::before,
+.portraits-viewport::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: inherit;
+  border: 1px solid rgba(198, 172, 116, 0.16);
+  pointer-events: none;
+}
+
+.party-card::after,
+.contact-card::after {
+  content: '';
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(201, 175, 120, 0.22), transparent 58%);
+}
+
+.party-card::after {
+  top: 10px;
+  right: 10px;
+  border-top: 1px solid rgba(193, 168, 111, 0.34);
+  border-right: 1px solid rgba(193, 168, 111, 0.34);
+  border-top-right-radius: 18px;
+}
+
+.contact-card::after {
+  left: 10px;
+  bottom: 10px;
+  border-left: 1px solid rgba(193, 168, 111, 0.34);
+  border-bottom: 1px solid rgba(193, 168, 111, 0.34);
+  border-bottom-left-radius: 18px;
+  background:
+    linear-gradient(315deg, rgba(201, 175, 120, 0.2), transparent 58%);
 }
 
 .party-card strong {
@@ -824,6 +1102,7 @@
 }
 
 .portraits-viewport {
+  position: relative;
   width: min(79%, 900px);
   margin: 0 auto;
   overflow: hidden;
@@ -852,6 +1131,11 @@
   display: block;
   object-fit: cover;
   border-radius: 22px;
+}
+
+.countdown-card,
+.portraits-viewport {
+  position: relative;
 }
 
 .portrait-arrow {
@@ -1186,6 +1470,17 @@
   width: min(480px, 100%);
 }
 
+.song-modal {
+  background:
+    radial-gradient(circle at top right, rgba(205, 233, 218, 0.28), transparent 28%),
+    linear-gradient(180deg, rgba(252, 255, 252, 0.98), rgba(248, 242, 233, 0.98));
+}
+
+.song-modal-copy {
+  margin-top: 16px;
+  max-width: 42ch;
+}
+
 .party-form {
   display: grid;
   gap: 16px;
@@ -1195,6 +1490,10 @@
 .party-form label {
   display: grid;
   gap: 7px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(127, 187, 166, 0.12);
+  background: rgba(255, 255, 255, 0.54);
   text-align: left;
   font-size: 0.92rem;
   color: var(--ink-strong);
@@ -1253,6 +1552,58 @@
   font-family: 'Cormorant Garamond', serif;
   font-style: italic;
   font-size: 1.08em;
+}
+
+.dress-code-copy {
+  margin-top: 18px;
+  max-width: none;
+  text-align: center;
+}
+
+.dress-code-highlight {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(250, 255, 252, 0.96), rgba(236, 247, 240, 0.92));
+  border: 1px solid rgba(193, 168, 111, 0.24);
+  box-shadow:
+    0 10px 24px rgba(127, 187, 166, 0.12),
+    inset 0 0 0 1px rgba(255, 251, 243, 0.48);
+  color: var(--ink-strong);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dress-code-gallery {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.dress-code-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 24px;
+  border: 1px solid rgba(127, 187, 166, 0.14);
+  background:
+    linear-gradient(180deg, rgba(254, 252, 248, 0.92), rgba(247, 252, 249, 0.9));
+  box-shadow: 0 18px 38px rgba(127, 187, 166, 0.08);
+}
+
+.dress-code-card .meta-label {
+  justify-self: center;
+}
+
+.dress-code-image {
+  width: 100%;
+  display: block;
+  border-radius: 18px;
+  border: 1px solid rgba(193, 168, 111, 0.16);
+  box-shadow: 0 16px 28px rgba(54, 80, 70, 0.12);
+  object-fit: cover;
 }
 
 .rsvp-form {
@@ -1940,6 +2291,11 @@
     padding-top: 20px;
   }
 
+  .invitation-shell::before,
+  .invitation-shell::after {
+    inset: -18px -12px;
+  }
+
   .hero-section {
     grid-template-columns: 1fr;
   }
@@ -1951,6 +2307,12 @@
   .hero-content {
     padding: 36px 18px 42px;
     text-align: center;
+  }
+
+  .hero-tree-watercolor {
+    width: min(360px, 96%);
+    top: 38%;
+    opacity: 0.16;
   }
 
   .hero-section h1 {
@@ -1977,6 +2339,17 @@
 
   .quote-card {
     min-height: auto;
+  }
+
+  .section-botanical-corner--invitees,
+  .section-botanical-corner--attendance,
+  .section-botanical-corner--countdown,
+  .section-botanical-corner--venue,
+  .section-botanical-corner--portraits,
+  .section-botanical-corner--party,
+  .section-botanical-corner--contact {
+    width: min(220px, 48%);
+    opacity: 0.2;
   }
 
   .rsvp-modal {
@@ -2093,6 +2466,11 @@
     padding-bottom: 42px;
   }
 
+  .invitation-shell::before,
+  .invitation-shell::after {
+    inset: -10px -6px;
+  }
+
   .hero-section {
     border-radius: 26px;
   }
@@ -2103,6 +2481,12 @@
 
   .hero-content {
     padding: 28px 16px 34px;
+  }
+
+  .hero-tree-watercolor {
+    width: min(280px, 100%);
+    top: 34%;
+    opacity: 0.22;
   }
 
   .hero-content::before {
@@ -2122,6 +2506,53 @@
 
   .hero-meta {
     gap: 12px;
+  }
+
+  .section-botanical-corner--invitees {
+    top: -28px;
+    right: -16px;
+    width: min(180px, 46%);
+  }
+
+  .section-botanical-corner--attendance,
+  .section-botanical-corner--countdown,
+  .section-botanical-corner--venue,
+  .section-botanical-corner--portraits,
+  .section-botanical-corner--party,
+  .section-botanical-corner--contact {
+    left: -18px;
+    bottom: -28px;
+    width: min(180px, 46%);
+    opacity: 0.18;
+  }
+
+  .section-botanical-corner--venue,
+  .section-botanical-corner--contact {
+    left: auto;
+    right: -14px;
+    top: -22px;
+    bottom: auto;
+  }
+
+  .section-botanical-corner--party {
+    left: -12px;
+    right: auto;
+    top: -20px;
+    bottom: auto;
+  }
+
+  .section-botanical-corner--countdown,
+  .section-botanical-corner--portraits {
+    right: -14px;
+    bottom: -22px;
+    left: auto;
+    top: auto;
+  }
+
+  .section-botanical-corner--party,
+  .section-botanical-corner--contact {
+    width: min(190px, 48%);
+    opacity: 0.22;
   }
 
   .sycamore-sprig {
@@ -2160,9 +2591,16 @@
 }
 
 .admin-shell {
+  position: relative;
+  isolation: isolate;
   width: min(1280px, calc(100% - 32px));
   margin: 0 auto;
   padding: 32px 0 72px;
+}
+
+.admin-shell::before,
+.admin-shell::after {
+  content: none;
 }
 
 .admin-login-card,
@@ -2176,14 +2614,28 @@
 .admin-reservation-item {
   border-radius: 28px;
   border: 1px solid rgba(127, 187, 166, 0.14);
-  background: rgba(255, 252, 247, 0.92);
+  background: rgba(255, 252, 247, 0.84);
   box-shadow: 0 20px 60px rgba(127, 187, 166, 0.1);
 }
 
 .admin-login-card {
+  position: relative;
   max-width: 540px;
   margin: 8vh auto 0;
   padding: 36px;
+}
+
+.admin-login-card::before,
+.admin-hero::before,
+.admin-sidebar-card::before,
+.admin-detail-card::before,
+.admin-attendees-card::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border-radius: 22px;
+  border: 1px solid rgba(193, 168, 111, 0.16);
+  pointer-events: none;
 }
 
 .admin-login-copy,
@@ -2209,11 +2661,15 @@
 }
 
 .admin-hero {
+  position: relative;
   display: flex;
   justify-content: space-between;
   gap: 20px;
   padding: 28px 30px;
   margin-bottom: 24px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.88), rgba(244, 250, 246, 0.86));
 }
 
 .admin-hero h1 {
@@ -2227,6 +2683,26 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 12px;
+}
+
+.admin-hero::after,
+.admin-sidebar-card::after,
+.admin-detail-card::after,
+.admin-attendees-card::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.24;
+  filter: saturate(1.18) contrast(1.04);
+}
+
+.admin-hero::after {
+  top: -34px;
+  right: -24px;
+  width: min(260px, 28%);
+  aspect-ratio: 1;
+  background: url('./assets/decor/botanico-portada.png') center / contain no-repeat;
 }
 
 .admin-updated-at {
@@ -2248,7 +2724,20 @@
 
 .admin-stat-card,
 .admin-summary-card {
+  position: relative;
   padding: 22px;
+}
+
+.admin-stat-card::before,
+.admin-summary-card::before,
+.admin-attendee-card::before,
+.admin-reservation-item::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 20px;
+  border: 1px solid rgba(193, 168, 111, 0.12);
+  pointer-events: none;
 }
 
 .admin-stat-card strong,
@@ -2267,7 +2756,47 @@
 .admin-sidebar-card,
 .admin-detail-card,
 .admin-attendees-card {
+  position: relative;
+  overflow: hidden;
   padding: 22px;
+}
+
+.admin-sidebar-card::after {
+  left: -18px;
+  bottom: -22px;
+  width: min(220px, 46%);
+  aspect-ratio: 1;
+  background: url('./assets/decor/botanico-cierre.png') center / contain no-repeat;
+}
+
+.admin-detail-card::after {
+  right: -18px;
+  top: -22px;
+  width: min(230px, 30%);
+  aspect-ratio: 1;
+  background: url('./assets/decor/botanico-portada.png') center / contain no-repeat;
+}
+
+.admin-attendees-card::after {
+  left: -14px;
+  top: -20px;
+  width: min(210px, 24%);
+  aspect-ratio: 1;
+  background: url('./assets/decor/botanico-cierre.png') center / contain no-repeat;
+}
+
+.admin-sidebar-head,
+.admin-detail-head,
+.admin-summary-grid,
+.admin-attendees-grid,
+.admin-reservations-list,
+.admin-login-form,
+.admin-login-copy,
+.admin-subcopy,
+.admin-hero > *,
+.admin-attendees-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .admin-reservations-list {
@@ -2277,6 +2806,7 @@
 }
 
 .admin-reservation-item {
+  position: relative;
   display: grid;
   gap: 6px;
   text-align: left;
@@ -2324,10 +2854,16 @@
 }
 
 .admin-attendee-card {
+  position: relative;
   padding: 18px;
 }
 
 @media (max-width: 980px) {
+  .admin-shell::before,
+  .admin-shell::after {
+    inset: -14px -10px;
+  }
+
   .admin-hero,
   .admin-detail-head {
     flex-direction: column;
@@ -2335,6 +2871,19 @@
 
   .admin-hero-actions {
     align-items: flex-start;
+  }
+
+  .admin-hero::after {
+    width: min(180px, 34%);
+    top: -18px;
+    right: -12px;
+    opacity: 0.18;
+  }
+
+  .admin-sidebar-card::after,
+  .admin-detail-card::after,
+  .admin-attendees-card::after {
+    opacity: 0.16;
   }
 
   .admin-stats-grid,
