@@ -212,9 +212,44 @@ body::after {
   backdrop-filter: blur(12px);
 }
 
+.music-player--hero {
+  position: absolute;
+  left: 50%;
+  right: auto;
+  bottom: 28px;
+  z-index: 3;
+  width: min(420px, calc(100% - 32px));
+  margin: 0;
+  border-radius: 24px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  border: 1px solid rgba(126, 201, 214, 0.28);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.26), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(255, 225, 194, 0.18), transparent 30%),
+    linear-gradient(180deg, rgba(255, 252, 247, 0.96), rgba(241, 250, 248, 0.94));
+  box-shadow:
+    0 16px 28px rgba(54, 80, 70, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  transform: translateX(-50%);
+}
+
+.music-player--hero::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 18px;
+  border: 1px solid rgba(193, 168, 111, 0.16);
+  pointer-events: none;
+}
+
 .music-player.is-expanded {
   width: min(276px, calc(100% - 24px));
   border-radius: 20px;
+}
+
+.music-player--hero.is-expanded {
+  width: min(458px, calc(100% - 32px));
+  border-radius: 24px;
 }
 
 .music-player-copy {
@@ -409,6 +444,27 @@ body::after {
   letter-spacing: 0;
   margin: 0 0 12px;
   white-space: normal;
+  color: #335863;
+  opacity: 1;
+  text-shadow: 0 8px 18px rgba(255, 255, 255, 0.18);
+}
+
+.hero-quote,
+.hero-kicker,
+.hero-meta strong,
+.hero-meta .meta-support-copy,
+.hero-meta .meta-label {
+  color: #3b5f68;
+  opacity: 1;
+}
+
+.hero-quote {
+  color: #2f4e57;
+  font-weight: 600;
+}
+
+.hero-name-emojis {
+  opacity: 1;
 }
 
 .hero-section,
@@ -460,15 +516,7 @@ body::after {
 }
 
 .hero-section .hero-media::before {
-  inset: 18px 18px 18px 18px;
-  border-radius: 28px;
-  border: 1px solid rgba(255, 245, 232, 0.8);
-  box-shadow:
-    inset 0 0 0 12px rgba(255, 255, 255, 0.08),
-    inset 0 0 0 28px rgba(188, 224, 204, 0.12);
-  background:
-    radial-gradient(circle at top left, rgba(196, 230, 210, 0.18), transparent 34%),
-    radial-gradient(circle at bottom right, rgba(255, 243, 228, 0.16), transparent 34%);
+  content: none;
 }
 
 .hero-media,
@@ -479,6 +527,8 @@ body::after {
 
 .hero-media {
   min-height: 720px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   overflow: hidden;
 }
 
@@ -487,6 +537,11 @@ body::after {
   height: 100%;
   object-fit: cover;
   display: block;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: 0;
+  filter: saturate(1.02) contrast(1.02);
+  animation: heroImageBloom 8.5s ease-in-out infinite;
 }
 
 .hero-content {
@@ -525,6 +580,7 @@ body::after {
   mix-blend-mode: multiply;
   pointer-events: none;
   user-select: none;
+  animation: heroAccentDrift 11s ease-in-out infinite;
 }
 
 .hero-content::before {
@@ -793,6 +849,7 @@ body::after {
   margin: 6px 0 16px;
   font-size: clamp(1.15rem, 2vw, 1.5rem);
   letter-spacing: 0.22rem;
+  animation: heroEmojiPulse 3.6s ease-in-out infinite;
 }
 
 .hero-meta {
@@ -933,6 +990,7 @@ body::after {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.42),
     0 18px 34px rgba(126, 201, 214, 0.08);
+  overflow: visible;
 }
 
 .countdown-card::after {
@@ -960,24 +1018,36 @@ body::after {
     inset 0 0 0 1px rgba(255, 255, 255, 0.4),
     0 10px 24px rgba(126, 201, 214, 0.08);
   backdrop-filter: blur(10px);
+  overflow: visible;
 }
 
 .countdown-ring {
+  position: relative;
   width: min(100%, 176px);
   aspect-ratio: 1;
   border-radius: 50%;
-  padding: 10px;
+  padding: 28px;
   background:
-    radial-gradient(circle at center, rgba(255, 255, 255, 0) 56%, rgba(131, 212, 223, 0.72) 57%, rgba(131, 212, 223, 0.72) 64%, rgba(255, 255, 255, 0) 65%),
-    radial-gradient(circle at 24% 18%, rgba(255, 246, 226, 0.8), transparent 28%),
-    linear-gradient(180deg, rgba(255, 241, 227, 0.96), rgba(255, 255, 255, 0.92));
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.84), rgba(240, 251, 250, 0.76) 56%, rgba(255, 242, 226, 0.22) 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(175, 219, 224, 0.52),
-    0 18px 32px rgba(126, 201, 214, 0.14);
+    inset 0 0 0 1px rgba(175, 219, 224, 0.22),
+    0 18px 32px rgba(126, 201, 214, 0.1);
   animation: countdownGlow 4.8s ease-in-out infinite;
 }
 
+.countdown-ring::before {
+  content: '';
+  position: absolute;
+  inset: -18px;
+  z-index: 3;
+  background: url('./assets/decor/marco-contador-circular.png') center / contain no-repeat;
+  filter: drop-shadow(0 10px 20px rgba(81, 170, 186, 0.14));
+  pointer-events: none;
+}
+
 .countdown-ring-inner {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   border-radius: 50%;
@@ -985,11 +1055,12 @@ body::after {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding-top: 8px;
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.98), rgba(246, 253, 251, 0.96)),
     linear-gradient(180deg, rgba(255, 246, 233, 0.8), rgba(245, 252, 249, 0.82));
   box-shadow:
-    inset 0 0 0 1px rgba(206, 235, 238, 0.72),
+    inset 0 0 0 1px rgba(206, 235, 238, 0.5),
     inset 0 -12px 24px rgba(230, 218, 202, 0.18);
 }
 
@@ -1000,16 +1071,66 @@ body::after {
   font-family: 'Cormorant Garamond', serif;
   font-weight: 600;
   line-height: 0.95;
+  transform: translateY(-7px);
   text-shadow: 0 6px 16px rgba(126, 201, 214, 0.16);
 }
 
 .countdown-item span {
   display: block;
-  margin-top: 12px;
+  margin-top: 4px;
   letter-spacing: 0.08rem;
   text-transform: uppercase;
   font-size: 0.74rem;
   color: #6793a0;
+  transform: translateY(-7px);
+}
+
+@keyframes heroContentFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes heroImageBloom {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: saturate(1.02) contrast(1.02) brightness(1);
+  }
+
+  50% {
+    transform: scale(1.028);
+    filter: saturate(1.07) contrast(1.03) brightness(1.03);
+  }
+}
+
+@keyframes heroAccentDrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  50% {
+    transform: translate3d(-8px, -6px, 0) rotate(2deg);
+  }
+}
+
+@keyframes heroEmojiPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
 }
 
 .countdown-item:nth-child(2) .countdown-ring {
@@ -2703,6 +2824,14 @@ body::after {
     padding: 7px 8px;
   }
 
+  .music-player--hero,
+  .music-player--hero.is-expanded {
+    right: auto;
+    bottom: 18px;
+    width: calc(100% - 24px);
+    margin: 0;
+  }
+
   .music-player.is-expanded {
     width: min(266px, calc(100% - 20px));
   }
@@ -2747,6 +2876,11 @@ body::after {
 
   .hero-media {
     min-height: 420px;
+  }
+
+  .hero-image {
+    padding: 0;
+    border-radius: 0;
   }
 
   .hero-content {
@@ -2906,6 +3040,14 @@ body::after {
     padding: 6px 7px;
   }
 
+  .music-player--hero,
+  .music-player--hero.is-expanded {
+    right: auto;
+    bottom: 12px;
+    width: calc(100% - 16px);
+    margin: 0;
+  }
+
   .music-player.is-expanded {
     width: min(252px, calc(100% - 16px));
   }
@@ -2949,6 +3091,11 @@ body::after {
     min-height: 340px;
   }
 
+  .hero-image {
+    padding: 0;
+    border-radius: 0;
+  }
+
   .hero-content {
     padding: 28px 16px 34px;
   }
@@ -2957,6 +3104,23 @@ body::after {
     width: min(280px, 100%);
     top: 34%;
     opacity: 0.22;
+  }
+
+  .countdown-ring {
+    padding: 22px;
+  }
+
+  .countdown-ring::before {
+    inset: -14px;
+  }
+
+  .countdown-ring-inner {
+    padding-top: 6px;
+  }
+
+  .countdown-item strong,
+  .countdown-item span {
+    transform: translateY(-5px);
   }
 
   .hero-sea-accent {
@@ -3077,7 +3241,35 @@ body::after {
 
 .admin-shell::before,
 .admin-shell::after {
-  content: none;
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.admin-shell::before {
+  inset: 8px 0 24px;
+  z-index: 0;
+  border-radius: 38px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.42), transparent 26%),
+    radial-gradient(circle at bottom right, rgba(255, 224, 194, 0.22), transparent 24%),
+    linear-gradient(180deg, rgba(255, 252, 247, 0.42), rgba(235, 249, 247, 0.3));
+  border: 1px solid rgba(126, 201, 214, 0.16);
+  box-shadow:
+    0 20px 60px rgba(107, 197, 214, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36);
+}
+
+.admin-shell::after {
+  right: -18px;
+  top: 18px;
+  z-index: 0;
+  width: min(250px, 24vw);
+  aspect-ratio: 1;
+  opacity: 0.16;
+  background: url('./assets/decor/marino-perlas-estrellas.png') center / contain no-repeat;
+  filter: saturate(0.8) brightness(1.02) blur(0.3px);
+  mix-blend-mode: multiply;
 }
 
 .admin-login-card,
@@ -3094,6 +3286,15 @@ body::after {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(239, 251, 249, 0.74));
   box-shadow: 0 22px 60px rgba(107, 197, 214, 0.14);
+}
+
+.admin-login-card,
+.admin-hero,
+.admin-stats-grid,
+.admin-panel-grid,
+.admin-attendees-card {
+  position: relative;
+  z-index: 1;
 }
 
 .admin-login-card {

@@ -11,7 +11,7 @@ import marinoCaracolaEstrella from './assets/decor/marino-caracola-estrella.png'
 import marinoConchasPlaya from './assets/decor/marino-conchas-playa.png'
 import marinoPerlasEstrellas from './assets/decor/marino-perlas-estrellas.png'
 import sicomoroAcuarela from './assets/decor/sicomoro-acuarela.jpg'
-import portadaLauraJuan from './assets/images/portada-laura-juan.jpeg'
+import portadaLauraJuan from './assets/images/portada-marco-final.png'
 import tarifasHotelActualizadas from './assets/info/tarifas-hotel-actualizadas.jpeg'
 import retratos01 from './assets/gallery/retratos-01.jpeg'
 import retratos02 from './assets/gallery/retratos-02.jpeg'
@@ -2994,112 +2994,112 @@ function App() {
 
   return (
     <>
-      {activeTrack ? (
-        <div className={`music-player ${isPlayerExpanded ? 'is-expanded' : ''}`} aria-label="Reproductor musical de la invitación">
-          <audio
-            ref={audioRef}
-            autoPlay
-            loop
-            playsInline
-            preload="auto"
-            src={activeTrack.src}
-            onLoadedMetadata={(event) => {
-              setAudioDurationSeconds(event.currentTarget.duration || 0)
-              setAudioProgressSeconds(event.currentTarget.currentTime || 0)
-            }}
-            onPause={() => setHasAudioStarted(false)}
-            onPlay={() => setHasAudioStarted(true)}
-            onTimeUpdate={(event) => setAudioProgressSeconds(event.currentTarget.currentTime || 0)}
-            onEnded={playNextTrack}
-          />
-          <button
-            aria-label={isAudioMuted ? 'Activar sonido' : 'Silenciar música'}
-            className={`music-player-toggle ${isAudioMuted ? 'is-muted' : ''}`}
-            onClick={handleToggleAudioMute}
-            title={isAudioMuted ? 'Activar sonido' : 'Silenciar música'}
-            type="button"
-          >
-            <span className="music-player-speaker" aria-hidden="true">
-              {isAudioMuted ? '🔇' : '🔊'}
-            </span>
-          </button>
-          <button
-            aria-expanded={isPlayerExpanded}
-            aria-label={isPlayerExpanded ? 'Ocultar controles de música' : 'Ver controles de música'}
-            className="music-player-main"
-            onClick={() => setIsPlayerExpanded((current) => !current)}
-            type="button"
-          >
-            <div className="music-player-nav" aria-hidden="true">
-              <span>‹</span>
-              <span>›</span>
-            </div>
-            <div className="music-player-copy">
-              <strong>{activeTrack.title}</strong>
-              <span>
-                {activeTrack.artist}
-                {hasAudioStarted ? '' : isAutoplayPending ? ' · autoplay pendiente' : ''}
-              </span>
-            </div>
-            <div className="music-player-progress music-player-progress--inline">
-              <input
-                aria-label="Progreso de la canción"
-                className="music-player-progress-bar"
-                max={audioDurationSeconds || 0}
-                min={0}
-                onChange={handleAudioProgressChange}
-                step={1}
-                type="range"
-                value={Math.min(audioProgressSeconds, audioDurationSeconds || 0)}
-              />
-            </div>
-            <span className="music-player-caret" aria-hidden="true">{isPlayerExpanded ? '−' : '+'}</span>
-          </button>
-          {isPlayerExpanded ? (
-            <div className="music-player-panel">
-              <div className="music-player-track-actions">
-                <button
-                  aria-label="Canción anterior"
-                  className="music-player-track-button"
-                  onClick={playPreviousTrack}
-                  type="button"
-                >
-                  ‹
-                </button>
-                <button
-                  aria-label="Siguiente canción"
-                  className="music-player-track-button"
-                  onClick={playNextTrack}
-                  type="button"
-                >
-                  ›
-                </button>
-              </div>
-              <div className="music-player-times">
-                <span>{formatTrackTime(audioProgressSeconds)}</span>
-                <span>{formatTrackTime(audioDurationSeconds)}</span>
-              </div>
-              <div className="music-player-volume">
-                <span className="music-player-volume-label" aria-hidden="true">Vol</span>
-                <input
-                  aria-label="Nivel de volumen"
-                  className="music-player-volume-slider"
-                  max={1}
-                  min={0}
-                  onChange={handleAudioVolumeChange}
-                  step={0.01}
-                  type="range"
-                  value={isAudioMuted ? 0 : audioVolume}
-                />
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
       <main className="invitation-shell">
         <section className="hero-section">
           <div className="hero-media">
             <img alt="Laura y Juan abrazados junto al lago" className="hero-image" src={portadaLauraJuan} />
+            {activeTrack ? (
+              <div className={`music-player music-player--hero ${isPlayerExpanded ? 'is-expanded' : ''}`} aria-label="Reproductor musical de la invitación">
+                <audio
+                  ref={audioRef}
+                  autoPlay
+                  loop
+                  playsInline
+                  preload="auto"
+                  src={activeTrack.src}
+                  onLoadedMetadata={(event) => {
+                    setAudioDurationSeconds(event.currentTarget.duration || 0)
+                    setAudioProgressSeconds(event.currentTarget.currentTime || 0)
+                  }}
+                  onPause={() => setHasAudioStarted(false)}
+                  onPlay={() => setHasAudioStarted(true)}
+                  onTimeUpdate={(event) => setAudioProgressSeconds(event.currentTarget.currentTime || 0)}
+                  onEnded={playNextTrack}
+                />
+                <button
+                  aria-label={isAudioMuted ? 'Activar sonido' : 'Silenciar música'}
+                  className={`music-player-toggle ${isAudioMuted ? 'is-muted' : ''}`}
+                  onClick={handleToggleAudioMute}
+                  title={isAudioMuted ? 'Activar sonido' : 'Silenciar música'}
+                  type="button"
+                >
+                  <span className="music-player-speaker" aria-hidden="true">
+                    {isAudioMuted ? '🔇' : '🔊'}
+                  </span>
+                </button>
+                <button
+                  aria-expanded={isPlayerExpanded}
+                  aria-label={isPlayerExpanded ? 'Ocultar controles de música' : 'Ver controles de música'}
+                  className="music-player-main"
+                  onClick={() => setIsPlayerExpanded((current) => !current)}
+                  type="button"
+                >
+                  <div className="music-player-nav" aria-hidden="true">
+                    <span>‹</span>
+                    <span>›</span>
+                  </div>
+                  <div className="music-player-copy">
+                    <strong>{activeTrack.title}</strong>
+                    <span>
+                      {activeTrack.artist}
+                      {hasAudioStarted ? '' : isAutoplayPending ? ' · autoplay pendiente' : ''}
+                    </span>
+                  </div>
+                  <div className="music-player-progress music-player-progress--inline">
+                    <input
+                      aria-label="Progreso de la canción"
+                      className="music-player-progress-bar"
+                      max={audioDurationSeconds || 0}
+                      min={0}
+                      onChange={handleAudioProgressChange}
+                      step={1}
+                      type="range"
+                      value={Math.min(audioProgressSeconds, audioDurationSeconds || 0)}
+                    />
+                  </div>
+                  <span className="music-player-caret" aria-hidden="true">{isPlayerExpanded ? '−' : '+'}</span>
+                </button>
+                {isPlayerExpanded ? (
+                  <div className="music-player-panel">
+                    <div className="music-player-track-actions">
+                      <button
+                        aria-label="Canción anterior"
+                        className="music-player-track-button"
+                        onClick={playPreviousTrack}
+                        type="button"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        aria-label="Siguiente canción"
+                        className="music-player-track-button"
+                        onClick={playNextTrack}
+                        type="button"
+                      >
+                        ›
+                      </button>
+                    </div>
+                    <div className="music-player-times">
+                      <span>{formatTrackTime(audioProgressSeconds)}</span>
+                      <span>{formatTrackTime(audioDurationSeconds)}</span>
+                    </div>
+                    <div className="music-player-volume">
+                      <span className="music-player-volume-label" aria-hidden="true">Vol</span>
+                      <input
+                        aria-label="Nivel de volumen"
+                        className="music-player-volume-slider"
+                        max={1}
+                        min={0}
+                        onChange={handleAudioVolumeChange}
+                        step={0.01}
+                        type="range"
+                        value={isAudioMuted ? 0 : audioVolume}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <div className="hero-content">
             <img
@@ -3522,13 +3522,13 @@ function App() {
                   ? (
                     <>
                       Ya habías confirmado esta invitación. Aquí puedes editar tu información y guardar cambios hasta el{' '}
-                      <strong className="rsvp-deadline-highlight">8 de Agosto</strong>.
+                      <strong className="rsvp-deadline-highlight">10 de Agosto</strong>.
                     </>
                   )
                   : (
                     <>
                       Completa la información de tu invitación. Si necesitas hacer cambios, podrás editarla aquí mismo hasta el{' '}
-                      <strong className="rsvp-deadline-highlight">8 de Agosto</strong>.
+                      <strong className="rsvp-deadline-highlight">10 de Agosto</strong>.
                     </>
                   )}
             </p>
@@ -4222,7 +4222,7 @@ function App() {
                     <li>Una vez realizado un abono, el hotel no realiza devoluciones.</li>
                     <li>
                       Tienes tiempo de confirmar o editar tu reserva hasta el{' '}
-                      <span className="lodging-deadline">8 de Agosto de 2026</span>
+                      <span className="lodging-deadline">10 de Agosto de 2026</span>
                     </li>
                     <li>
                       Es importante que llegues a La Bodeguita de Cartagena antes de las 9:00 a. m., ya que el
