@@ -1,26 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Parisienne&family=Manrope:wght@400;500;600;700&display=swap');
 
 :root {
-  --mint-050: #f6fdf9;
-  --mint-100: #edf9f3;
-  --mint-200: #d9efe4;
-  --mint-300: #bfe3d3;
-  --mint-500: #7fbba6;
-  --mint-700: #5e8f7d;
-  --beige-050: #fdfaf4;
-  --beige-100: #f7f0e4;
-  --beige-200: #eddfca;
-  --beige-300: #e2ceb0;
-  --ink-soft: #6d6154;
-  --ink-strong: #365046;
+  --mint-050: #f4fcfd;
+  --mint-100: #e8f8fa;
+  --mint-200: #d3eef3;
+  --mint-300: #b7e1ea;
+  --mint-500: #7ec9d6;
+  --mint-700: #4f8ea3;
+  --beige-050: #fffaf2;
+  --beige-100: #f8efe2;
+  --beige-200: #ebdcc6;
+  --beige-300: #ddc9a9;
+  --ink-soft: #5e6d73;
+  --ink-strong: #2f5966;
 
   font-family: 'Manrope', sans-serif;
   line-height: 1.6;
   font-weight: 400;
   color: var(--ink-soft);
   background:
-    radial-gradient(circle at top, rgba(191, 227, 211, 0.34), transparent 32%),
-    linear-gradient(180deg, #fffdf8 0%, var(--beige-050) 38%, var(--beige-100) 100%);
+    radial-gradient(circle at top, rgba(194, 236, 240, 0.4), transparent 34%),
+    linear-gradient(180deg, #fdfefd 0%, var(--mint-050) 34%, var(--beige-050) 100%);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -49,7 +49,7 @@ body::before {
   content: '';
   position: fixed;
   inset: 18px;
-  border: 1px solid rgba(127, 187, 166, 0.24);
+  border: 1px solid rgba(126, 201, 214, 0.22);
   pointer-events: none;
 }
 
