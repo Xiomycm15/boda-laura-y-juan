@@ -441,12 +441,27 @@ body::after {
   font-weight: 400;
   font-size: clamp(3.92rem, 5.88vw, 6.08rem);
   line-height: 0.98;
-  letter-spacing: 0;
+  letter-spacing: 0.01em;
   margin: 0 0 12px;
   white-space: normal;
-  color: #335863;
+  color: #21454f;
   opacity: 1;
-  text-shadow: 0 8px 18px rgba(255, 255, 255, 0.18);
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.2),
+    0 14px 24px rgba(33, 69, 79, 0.08);
+  mix-blend-mode: normal;
+}
+
+.hero-section h1 + .hero-name-emojis::before {
+  content: '';
+  display: block;
+  width: clamp(120px, 20vw, 170px);
+  height: 2px;
+  margin: 0 auto 12px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(127, 210, 220, 0.88) 26%, rgba(255, 226, 192, 0.92) 50%, rgba(127, 210, 220, 0.88) 74%, rgba(255, 255, 255, 0));
+  box-shadow: 0 8px 18px rgba(127, 210, 220, 0.16);
 }
 
 .hero-quote,
@@ -454,17 +469,19 @@ body::after {
 .hero-meta strong,
 .hero-meta .meta-support-copy,
 .hero-meta .meta-label {
-  color: #3b5f68;
+  color: #2d4f58;
   opacity: 1;
+  mix-blend-mode: normal;
 }
 
 .hero-quote {
-  color: #2f4e57;
+  color: #28464f;
   font-weight: 600;
 }
 
 .hero-name-emojis {
   opacity: 1;
+  filter: none;
 }
 
 .hero-section,
