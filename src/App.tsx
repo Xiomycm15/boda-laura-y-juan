@@ -4,12 +4,14 @@ import { supabase } from './lib/supabase'
 import siNoTeTengoTrack from './assets/audio/si-no-te-tengo.mp3'
 import theVowTrack from './assets/audio/the-vow.mp3'
 import volviANacerTrack from './assets/audio/volvi-a-nacer.mp3'
-import botanicoCierre from './assets/decor/botanico-cierre.png'
 import dressCodeEllas from './assets/decor/dress-code-ellas.jpeg'
 import dressCodeEllos from './assets/decor/dress-code-ellos.jpeg'
-import botanicoPortada from './assets/decor/botanico-portada.png'
+import marinoArenaEstrella from './assets/decor/marino-arena-estrella.png'
+import marinoCaracolaEstrella from './assets/decor/marino-caracola-estrella.png'
+import marinoConchasPlaya from './assets/decor/marino-conchas-playa.png'
+import marinoPerlasEstrellas from './assets/decor/marino-perlas-estrellas.png'
 import sicomoroAcuarela from './assets/decor/sicomoro-acuarela.jpg'
-import portadaLauraJuan from './assets/images/portada-laura-juan.jpeg'
+import portadaLauraJuan from './assets/images/portada-marco-final.png'
 import tarifasHotelActualizadas from './assets/info/tarifas-hotel-actualizadas.jpeg'
 import retratos01 from './assets/gallery/retratos-01.jpeg'
 import retratos02 from './assets/gallery/retratos-02.jpeg'
@@ -1864,6 +1866,7 @@ function App() {
   const [audioVolume, setAudioVolume] = useState(0.72)
   const [audioProgressSeconds, setAudioProgressSeconds] = useState(0)
   const [audioDurationSeconds, setAudioDurationSeconds] = useState(0)
+  const [paymentPortalToast, setPaymentPortalToast] = useState('')
 
   const invitationType = getInvitationType(activeInvitation)
   const activeTrack = weddingSoundtrack[activeTrackIndex] ?? null
@@ -1958,6 +1961,18 @@ function App() {
     selectedExistingGroup.capacity > 0 &&
     selectedExistingGroup.reservedPeople >= selectedExistingGroup.capacity
   const maxPortraitIndex = Math.max(lovePortraits.length - visiblePortraits, 0)
+
+  useEffect(() => {
+    if (!paymentPortalToast) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setPaymentPortalToast('')
+    }, 2800)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [paymentPortalToast])
 
   async function loadAvailabilityData() {
     if (!supabase) {
@@ -2485,6 +2500,11 @@ function App() {
   }
 
   function openPaymentModal() {
+    if (!isPaymentPortalEnabled) {
+      setPaymentPortalToast('Portal de pagos disponible solo después de confirmar tu invitación.')
+      return
+    }
+
     setIsPaymentModalOpen(true)
   }
 
@@ -2992,114 +3012,125 @@ function App() {
 
   return (
     <>
-      {activeTrack ? (
-        <div className={`music-player ${isPlayerExpanded ? 'is-expanded' : ''}`} aria-label="Reproductor musical de la invitación">
-          <audio
-            ref={audioRef}
-            autoPlay
-            loop
-            playsInline
-            preload="auto"
-            src={activeTrack.src}
-            onLoadedMetadata={(event) => {
-              setAudioDurationSeconds(event.currentTarget.duration || 0)
-              setAudioProgressSeconds(event.currentTarget.currentTime || 0)
-            }}
-            onPause={() => setHasAudioStarted(false)}
-            onPlay={() => setHasAudioStarted(true)}
-            onTimeUpdate={(event) => setAudioProgressSeconds(event.currentTarget.currentTime || 0)}
-            onEnded={playNextTrack}
-          />
-          <button
-            aria-label={isAudioMuted ? 'Activar sonido' : 'Silenciar música'}
-            className={`music-player-toggle ${isAudioMuted ? 'is-muted' : ''}`}
-            onClick={handleToggleAudioMute}
-            title={isAudioMuted ? 'Activar sonido' : 'Silenciar música'}
-            type="button"
-          >
-            <span className="music-player-speaker" aria-hidden="true">
-              {isAudioMuted ? '🔇' : '🔊'}
-            </span>
-          </button>
-          <button
-            aria-expanded={isPlayerExpanded}
-            aria-label={isPlayerExpanded ? 'Ocultar controles de música' : 'Ver controles de música'}
-            className="music-player-main"
-            onClick={() => setIsPlayerExpanded((current) => !current)}
-            type="button"
-          >
-            <div className="music-player-nav" aria-hidden="true">
-              <span>‹</span>
-              <span>›</span>
-            </div>
-            <div className="music-player-copy">
-              <strong>{activeTrack.title}</strong>
-              <span>
-                {activeTrack.artist}
-                {hasAudioStarted ? '' : isAutoplayPending ? ' · autoplay pendiente' : ''}
-              </span>
-            </div>
-            <div className="music-player-progress music-player-progress--inline">
-              <input
-                aria-label="Progreso de la canción"
-                className="music-player-progress-bar"
-                max={audioDurationSeconds || 0}
-                min={0}
-                onChange={handleAudioProgressChange}
-                step={1}
-                type="range"
-                value={Math.min(audioProgressSeconds, audioDurationSeconds || 0)}
-              />
-            </div>
-            <span className="music-player-caret" aria-hidden="true">{isPlayerExpanded ? '−' : '+'}</span>
-          </button>
-          {isPlayerExpanded ? (
-            <div className="music-player-panel">
-              <div className="music-player-track-actions">
-                <button
-                  aria-label="Canción anterior"
-                  className="music-player-track-button"
-                  onClick={playPreviousTrack}
-                  type="button"
-                >
-                  ‹
-                </button>
-                <button
-                  aria-label="Siguiente canción"
-                  className="music-player-track-button"
-                  onClick={playNextTrack}
-                  type="button"
-                >
-                  ›
-                </button>
-              </div>
-              <div className="music-player-times">
-                <span>{formatTrackTime(audioProgressSeconds)}</span>
-                <span>{formatTrackTime(audioDurationSeconds)}</span>
-              </div>
-              <div className="music-player-volume">
-                <span className="music-player-volume-label" aria-hidden="true">Vol</span>
-                <input
-                  aria-label="Nivel de volumen"
-                  className="music-player-volume-slider"
-                  max={1}
-                  min={0}
-                  onChange={handleAudioVolumeChange}
-                  step={0.01}
-                  type="range"
-                  value={isAudioMuted ? 0 : audioVolume}
-                />
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
       <main className="invitation-shell">
+        {paymentPortalToast ? (
+          <div className="payment-portal-toast" role="status" aria-live="polite">
+            {paymentPortalToast}
+          </div>
+        ) : null}
         <section className="hero-section">
           <div className="hero-media">
             <img alt="Laura y Juan abrazados junto al lago" className="hero-image" src={portadaLauraJuan} />
+            {activeTrack ? (
+              <div className={`music-player music-player--hero ${isPlayerExpanded ? 'is-expanded' : ''}`} aria-label="Reproductor musical de la invitación">
+                <audio
+                  ref={audioRef}
+                  autoPlay
+                  loop
+                  playsInline
+                  preload="auto"
+                  src={activeTrack.src}
+                  onLoadedMetadata={(event) => {
+                    setAudioDurationSeconds(event.currentTarget.duration || 0)
+                    setAudioProgressSeconds(event.currentTarget.currentTime || 0)
+                  }}
+                  onPause={() => setHasAudioStarted(false)}
+                  onPlay={() => setHasAudioStarted(true)}
+                  onTimeUpdate={(event) => setAudioProgressSeconds(event.currentTarget.currentTime || 0)}
+                  onEnded={playNextTrack}
+                />
+                <button
+                  aria-label={isAudioMuted ? 'Activar sonido' : 'Silenciar música'}
+                  className={`music-player-toggle ${isAudioMuted ? 'is-muted' : ''}`}
+                  onClick={handleToggleAudioMute}
+                  title={isAudioMuted ? 'Activar sonido' : 'Silenciar música'}
+                  type="button"
+                >
+                  <span className="music-player-speaker" aria-hidden="true">
+                    {isAudioMuted ? '🔇' : '🔊'}
+                  </span>
+                </button>
+                <button
+                  aria-expanded={isPlayerExpanded}
+                  aria-label={isPlayerExpanded ? 'Ocultar controles de música' : 'Ver controles de música'}
+                  className="music-player-main"
+                  onClick={() => setIsPlayerExpanded((current) => !current)}
+                  type="button"
+                >
+                  <div className="music-player-nav" aria-hidden="true">
+                    <span>‹</span>
+                    <span>›</span>
+                  </div>
+                  <div className="music-player-copy">
+                    <strong>{activeTrack.title}</strong>
+                    <span>
+                      {activeTrack.artist}
+                      {hasAudioStarted ? '' : isAutoplayPending ? ' · autoplay pendiente' : ''}
+                    </span>
+                  </div>
+                  <div className="music-player-progress music-player-progress--inline">
+                    <input
+                      aria-label="Progreso de la canción"
+                      className="music-player-progress-bar"
+                      max={audioDurationSeconds || 0}
+                      min={0}
+                      onChange={handleAudioProgressChange}
+                      step={1}
+                      type="range"
+                      value={Math.min(audioProgressSeconds, audioDurationSeconds || 0)}
+                    />
+                  </div>
+                  <span className="music-player-caret" aria-hidden="true">{isPlayerExpanded ? '−' : '+'}</span>
+                </button>
+                {isPlayerExpanded ? (
+                  <div className="music-player-panel">
+                    <div className="music-player-track-actions">
+                      <button
+                        aria-label="Canción anterior"
+                        className="music-player-track-button"
+                        onClick={playPreviousTrack}
+                        type="button"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        aria-label="Siguiente canción"
+                        className="music-player-track-button"
+                        onClick={playNextTrack}
+                        type="button"
+                      >
+                        ›
+                      </button>
+                    </div>
+                    <div className="music-player-times">
+                      <span>{formatTrackTime(audioProgressSeconds)}</span>
+                      <span>{formatTrackTime(audioDurationSeconds)}</span>
+                    </div>
+                    <div className="music-player-volume">
+                      <span className="music-player-volume-label" aria-hidden="true">Vol</span>
+                      <input
+                        aria-label="Nivel de volumen"
+                        className="music-player-volume-slider"
+                        max={1}
+                        min={0}
+                        onChange={handleAudioVolumeChange}
+                        step={0.01}
+                        type="range"
+                        value={isAudioMuted ? 0 : audioVolume}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <div className="hero-content">
+            <img
+              alt=""
+              aria-hidden="true"
+              className="hero-sea-accent"
+              src={marinoPerlasEstrellas}
+            />
             <img
               alt=""
               aria-hidden="true"
@@ -3116,6 +3147,7 @@ function App() {
               <span></span>
             </div>
             <h1>Laura & Juan</h1>
+            <p className="hero-name-emojis">💚💙</p>
             <p className="hero-quote">
               Después de recorrer muchos caminos juntos, con mucha alegría te invitamos a celebrar el inicio de nuestra nueva aventura.
             </p>
@@ -3142,7 +3174,7 @@ function App() {
             alt=""
             aria-hidden="true"
             className="section-botanical-corner section-botanical-corner--invitees"
-            src={botanicoPortada}
+            src={marinoConchasPlaya}
           />
           <p className="invitees-label">{activeInvitation.members.length === 1 ? 'Querido/a:' : 'Queridos:'}</p>
           <h2 className="invitees-title">
@@ -3157,14 +3189,24 @@ function App() {
           </div>
         </section>
 
+        <div className="beach-divider beach-divider--center" aria-hidden="true">
+          <span className="beach-divider-line"></span>
+          <span className="beach-divider-shell"></span>
+          <span className="beach-divider-foam beach-divider-foam--left"></span>
+          <span className="beach-divider-foam beach-divider-foam--right"></span>
+        </div>
+
         <section className="countdown-section" aria-label="Cuenta regresiva para la boda">
           <img
             alt=""
             aria-hidden="true"
             className="section-botanical-corner section-botanical-corner--countdown"
-            src={botanicoCierre}
+            src={marinoPerlasEstrellas}
           />
-          <h2 className="countdown-title">Cuenta regresiva para el gran día</h2>
+          <h2 className="countdown-title title-with-sea-charm title-with-sea-charm--shell-right">
+            Cuenta regresiva para el gran día
+            <span aria-hidden="true" className="sea-charm sea-charm--shell"></span>
+          </h2>
           <p className="countdown-date">29 de Mayo de 2027 · Hotel Isla Múcura</p>
           <div className="sycamore-sprig sycamore-sprig--centered" aria-hidden="true">
             <span></span>
@@ -3195,15 +3237,25 @@ function App() {
           </div>
         </section>
 
+        <div className="beach-divider beach-divider--left" aria-hidden="true">
+          <span className="beach-divider-line"></span>
+          <span className="beach-divider-shell"></span>
+          <span className="beach-divider-foam beach-divider-foam--left"></span>
+          <span className="beach-divider-foam beach-divider-foam--right"></span>
+        </div>
+
         <section className="venue-section">
           <img
             alt=""
             aria-hidden="true"
             className="section-botanical-corner section-botanical-corner--venue"
-            src={botanicoPortada}
+            src={marinoCaracolaEstrella}
           />
           <p className="eyebrow">Lugar</p>
-          <h2 className="venue-title">Hostel Isla Múcura</h2>
+          <h2 className="venue-title title-with-sea-charm title-with-sea-charm--star-left">
+            Hostel Isla Múcura
+            <span aria-hidden="true" className="sea-charm sea-charm--star"></span>
+          </h2>
           <p className="venue-subcopy">Frente al mar en el jardin del hotel</p>
           <p className="venue-copy">
             Hemos elegido este rincón del Caribe para celebrar juntos un fin de semana inolvidable.
@@ -3239,15 +3291,25 @@ function App() {
           </div>
         </section>
 
+        <div className="beach-divider beach-divider--right" aria-hidden="true">
+          <span className="beach-divider-line"></span>
+          <span className="beach-divider-shell"></span>
+          <span className="beach-divider-foam beach-divider-foam--left"></span>
+          <span className="beach-divider-foam beach-divider-foam--right"></span>
+        </div>
+
         <section className="attendance-info-section">
           <img
             alt=""
             aria-hidden="true"
             className="section-botanical-corner section-botanical-corner--attendance"
-            src={botanicoCierre}
+            src={marinoArenaEstrella}
           />
           <p className="eyebrow">Confirmación</p>
-          <h2 className="attendance-info-title">Información importante</h2>
+          <h2 className="attendance-info-title title-with-sea-charm title-with-sea-charm--shell-left">
+            Información importante
+            <span aria-hidden="true" className="sea-charm sea-charm--shell"></span>
+          </h2>
           <p className="attendance-info-copy">
             Primero conoce las tarifas y la información del hospedaje antes de confirmar tu
             asistencia.
@@ -3267,8 +3329,9 @@ function App() {
           </div>
           <div className="attendance-payment-action">
             <button
+              aria-disabled={!isPaymentPortalEnabled}
               className="secondary-button attendance-action-payment"
-              disabled={!isPaymentPortalEnabled}
+              onFocus={!isPaymentPortalEnabled ? () => setPaymentPortalToast('Portal de pagos disponible solo después de confirmar tu invitación.') : undefined}
               onClick={openPaymentModal}
               type="button"
             >
@@ -3277,16 +3340,26 @@ function App() {
           </div>
         </section>
 
+        <div className="beach-divider beach-divider--center" aria-hidden="true">
+          <span className="beach-divider-line"></span>
+          <span className="beach-divider-shell"></span>
+          <span className="beach-divider-foam beach-divider-foam--left"></span>
+          <span className="beach-divider-foam beach-divider-foam--right"></span>
+        </div>
+
         <section className="portraits-section" aria-label="Retratos de Nuestra Historia">
           <img
             alt=""
             aria-hidden="true"
             className="section-botanical-corner section-botanical-corner--portraits"
-            src={botanicoPortada}
+            src={marinoPerlasEstrellas}
           />
           <div className="section-heading">
             <p className="eyebrow">Retratos de Nuestra Historia</p>
-            <h2>Un recorrido por momentos, viajes y miradas que han hecho aún más bonito este amor.</h2>
+            <h2 className="title-with-sea-charm title-with-sea-charm--star-right">
+              Un recorrido por momentos, viajes y miradas que han hecho aún más bonito este amor.
+              <span aria-hidden="true" className="sea-charm sea-charm--star"></span>
+            </h2>
             <div className="sycamore-sprig sycamore-sprig--centered" aria-hidden="true">
               <span></span>
               <span></span>
@@ -3296,6 +3369,18 @@ function App() {
             </div>
           </div>
           <div className="portraits-carousel">
+            <img
+              alt=""
+              aria-hidden="true"
+              className="portraits-carousel-accent portraits-carousel-accent--top"
+              src={marinoConchasPlaya}
+            />
+            <img
+              alt=""
+              aria-hidden="true"
+              className="portraits-carousel-accent portraits-carousel-accent--bottom"
+              src={marinoCaracolaEstrella}
+            />
             <button
               aria-label="Ver retrato anterior"
               className="portrait-arrow is-left"
@@ -3344,16 +3429,26 @@ function App() {
           </div>
         </section>
 
+        <div className="beach-divider beach-divider--left" aria-hidden="true">
+          <span className="beach-divider-line"></span>
+          <span className="beach-divider-shell"></span>
+          <span className="beach-divider-foam beach-divider-foam--left"></span>
+          <span className="beach-divider-foam beach-divider-foam--right"></span>
+        </div>
+
         <section className="party-section" aria-label="Fiesta">
           <img
             alt=""
             aria-hidden="true"
             className="section-botanical-corner section-botanical-corner--party"
-            src={botanicoCierre}
+            src={marinoArenaEstrella}
           />
           <div className="section-heading">
             <p className="eyebrow">Fiesta</p>
-            <h2>Hagamos juntos una fiesta épica.</h2>
+            <h2 className="title-with-sea-charm title-with-sea-charm--shell-right">
+              Hagamos juntos una fiesta épica.
+              <span aria-hidden="true" className="sea-charm sea-charm--shell"></span>
+            </h2>
             <p className="party-copy">Aquí algunos detalles a tener en cuenta.</p>
           </div>
           <div className="party-grid">
@@ -3374,16 +3469,26 @@ function App() {
           </div>
         </section>
 
+        <div className="beach-divider beach-divider--right" aria-hidden="true">
+          <span className="beach-divider-line"></span>
+          <span className="beach-divider-shell"></span>
+          <span className="beach-divider-foam beach-divider-foam--left"></span>
+          <span className="beach-divider-foam beach-divider-foam--right"></span>
+        </div>
+
         <section className="contact-section" aria-label="Contacto de los novios">
           <img
             alt=""
             aria-hidden="true"
             className="section-botanical-corner section-botanical-corner--contact"
-            src={botanicoPortada}
+            src={marinoCaracolaEstrella}
           />
           <div className="section-heading">
             <p className="eyebrow">Contacto</p>
-            <h2>Si tienes dudas o preguntas, aquí estamos para ti</h2>
+            <h2 className="title-with-sea-charm title-with-sea-charm--star-left">
+              Si tienes dudas o preguntas, aquí estamos para ti
+              <span aria-hidden="true" className="sea-charm sea-charm--star"></span>
+            </h2>
             <p className="contact-copy">
               Queremos que disfrutes este viaje con tranquilidad. Si necesitas ayuda, puedes escribirnos directamente.
             </p>
@@ -3441,13 +3546,13 @@ function App() {
                   ? (
                     <>
                       Ya habías confirmado esta invitación. Aquí puedes editar tu información y guardar cambios hasta el{' '}
-                      <strong className="rsvp-deadline-highlight">8 de Agosto</strong>.
+                      <strong className="rsvp-deadline-highlight">10 de Agosto</strong>.
                     </>
                   )
                   : (
                     <>
                       Completa la información de tu invitación. Si necesitas hacer cambios, podrás editarla aquí mismo hasta el{' '}
-                      <strong className="rsvp-deadline-highlight">8 de Agosto</strong>.
+                      <strong className="rsvp-deadline-highlight">10 de Agosto</strong>.
                     </>
                   )}
             </p>
@@ -4112,17 +4217,17 @@ function App() {
                 <article className="lodging-detail-card">
                   <span className="meta-label">Que incluye este plan:</span>
                   <ul className="lodging-includes-list">
-                    <li>Hospedaje en Hotel Isla Múcura</li>
-                    <li>Alimentación desayuno -almuerzo-cena (buffet o platos a la carta)</li>
-                    <li>Transporte desde Cartagena a la Isla en lancha (Ida y vuelta)</li>
+                    <li>🏨 Hospedaje en Hotel Isla Múcura</li>
+                    <li>🍽️ Alimentación desayuno -almuerzo-cena (buffet o platos a la carta)</li>
+                    <li>🚢 Transporte desde Cartagena a la Isla en lancha (Ida y vuelta)</li>
                   </ul>
                 </article>
 
                 <article className="lodging-detail-card">
                   <span className="meta-label">Que no incluye este plan:</span>
                   <ul className="lodging-includes-list">
-                    <li>Transporte desde tu ciudad a Cartagena</li>
-                    <li>Gastos personales y consumos adicionales</li>
+                    <li>🚫 Transporte desde tu ciudad a Cartagena</li>
+                    <li>🚫 Gastos personales y consumos adicionales</li>
                   </ul>
                 </article>
 
@@ -4141,7 +4246,7 @@ function App() {
                     <li>Una vez realizado un abono, el hotel no realiza devoluciones.</li>
                     <li>
                       Tienes tiempo de confirmar o editar tu reserva hasta el{' '}
-                      <span className="lodging-deadline">8 de Agosto de 2026</span>
+                      <span className="lodging-deadline">10 de Agosto de 2026</span>
                     </li>
                     <li>
                       Es importante que llegues a La Bodeguita de Cartagena antes de las 9:00 a. m., ya que el
@@ -4281,7 +4386,7 @@ function App() {
           <section
             aria-labelledby="payment-modal-title"
             aria-modal="true"
-            className="party-modal"
+            className="party-modal payment-modal"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
           >
@@ -4295,26 +4400,41 @@ function App() {
             </button>
             <p className="eyebrow">Portal de pagos</p>
             <h2 id="payment-modal-title">Información para realizar tu pago</h2>
-            <p className="modal-copy">Hay dos métodos de pago:</p>
-            <p className="modal-copy">
-              1. Por medio de este link:{' '}
-              <a href="https://checkout.wompi.co/method" rel="noreferrer" target="_blank">
-                https://checkout.wompi.co/method
-              </a>
-            </p>
-            <p className="modal-copy">
-              2. Transferencia a BANCOLOMBIA S.A. para la cuenta INVERSIONES MUNDO MUCURA SAS identificado(a) con
-              NIT 901079616 a la cuenta de ahorros número 21889824406
-            </p>
-            <p className="modal-copy">
-              <strong>IMPORTANTE:</strong> No se hará devoluciones en caso de que ya haya hecho algún pago.
-            </p>
-            <p className="modal-copy">
-              Enviar los comprobantes de pago al WA de{' '}
-              <a href="https://wa.me/573197659146" rel="noreferrer" target="_blank">Lau</a>
-              {' '}o{' '}
-              <a href="https://wa.me/573195852884" rel="noreferrer" target="_blank">Juancho</a>.
-            </p>
+            <p className="modal-copy payment-modal-intro">Elige el método de pago que te resulte más cómodo.</p>
+            <div className="payment-methods">
+              <article className="payment-method-card">
+                <span className="meta-label">Método 1</span>
+                <strong>Pago en línea</strong>
+                <p className="payment-method-copy">
+                  Realiza tu pago directamente desde este enlace seguro.
+                </p>
+                <a className="secondary-button payment-method-link" href="https://checkout.wompi.co/method" rel="noreferrer" target="_blank">
+                  Ir a Wompi
+                </a>
+              </article>
+              <article className="payment-method-card">
+                <span className="meta-label">Método 2</span>
+                <strong>Transferencia Bancolombia</strong>
+                <p className="payment-method-copy">
+                  INVERSIONES MUNDO MUCURA SAS
+                  <br />
+                  NIT 901079616
+                  <br />
+                  Cuenta de ahorros 21889824406
+                </p>
+              </article>
+            </div>
+            <div className="payment-notes">
+              <p className="payment-note">
+                <strong>Importante:</strong> No se harán devoluciones en caso de que ya se haya realizado algún pago.
+              </p>
+              <p className="payment-note">
+                Envía los comprobantes de pago al WA de{' '}
+                <a href="https://wa.me/573197659146" rel="noreferrer" target="_blank">Lau</a>
+                {' '}o{' '}
+                <a href="https://wa.me/573195852884" rel="noreferrer" target="_blank">Juancho</a>.
+              </p>
+            </div>
           </section>
         </div>
       ) : null}
