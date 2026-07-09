@@ -1738,6 +1738,30 @@ body::after {
   box-sizing: border-box;
 }
 
+.attendance-action-payment[aria-disabled='true'] {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.payment-portal-toast {
+  position: sticky;
+  top: 18px;
+  z-index: 12;
+  width: min(560px, calc(100% - 24px));
+  margin: 0 auto 18px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(126, 201, 214, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.96), rgba(241, 250, 248, 0.94));
+  color: #2f4f58;
+  text-align: center;
+  box-shadow:
+    0 16px 28px rgba(54, 80, 70, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+}
+
 .venue-section {
   position: relative;
   text-align: center;
@@ -2090,6 +2114,71 @@ body::after {
   text-align: center;
 }
 
+.payment-modal .modal-copy {
+  max-width: none;
+  text-align: center;
+}
+
+.payment-modal-intro {
+  margin-top: 18px;
+}
+
+.payment-methods {
+  display: grid;
+  gap: 18px;
+  margin-top: 26px;
+}
+
+.payment-method-card {
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(126, 201, 214, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.58), transparent 28%),
+    linear-gradient(180deg, rgba(254, 252, 248, 0.94), rgba(244, 251, 249, 0.9));
+  box-shadow: 0 16px 34px rgba(126, 201, 214, 0.1);
+}
+
+.payment-method-card strong {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.9rem;
+  line-height: 1.06;
+  color: var(--ink-strong);
+}
+
+.payment-method-copy {
+  margin: 0;
+  color: rgba(71, 82, 77, 0.86);
+  line-height: 1.65;
+  text-align: justify;
+  text-wrap: pretty;
+}
+
+.payment-method-link {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+.payment-notes {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.payment-note {
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(126, 201, 214, 0.12);
+  background: rgba(255, 255, 255, 0.62);
+  color: rgba(71, 82, 77, 0.88);
+  line-height: 1.6;
+  text-align: justify;
+  text-wrap: pretty;
+}
+
 .dress-code-highlight {
   display: inline-block;
   padding: 6px 16px;
@@ -2197,6 +2286,8 @@ body::after {
 .lodging-banner-copy {
   margin-bottom: 56px;
   line-height: 1.5;
+  text-align: justify;
+  text-wrap: pretty;
 }
 
 .lodging-cards-grid {

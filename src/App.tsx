@@ -1866,6 +1866,7 @@ function App() {
   const [audioVolume, setAudioVolume] = useState(0.72)
   const [audioProgressSeconds, setAudioProgressSeconds] = useState(0)
   const [audioDurationSeconds, setAudioDurationSeconds] = useState(0)
+  const [paymentPortalToast, setPaymentPortalToast] = useState('')
 
   const invitationType = getInvitationType(activeInvitation)
   const activeTrack = weddingSoundtrack[activeTrackIndex] ?? null
@@ -1960,6 +1961,18 @@ function App() {
     selectedExistingGroup.capacity > 0 &&
     selectedExistingGroup.reservedPeople >= selectedExistingGroup.capacity
   const maxPortraitIndex = Math.max(lovePortraits.length - visiblePortraits, 0)
+
+  useEffect(() => {
+    if (!paymentPortalToast) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setPaymentPortalToast('')
+    }, 2800)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [paymentPortalToast])
 
   async function loadAvailabilityData() {
     if (!supabase) {
@@ -2487,6 +2500,11 @@ function App() {
   }
 
   function openPaymentModal() {
+    if (!isPaymentPortalEnabled) {
+      setPaymentPortalToast('Portal de pagos disponible solo después de confirmar tu invitación.')
+      return
+    }
+
     setIsPaymentModalOpen(true)
   }
 
@@ -2995,6 +3013,11 @@ function App() {
   return (
     <>
       <main className="invitation-shell">
+        {paymentPortalToast ? (
+          <div className="payment-portal-toast" role="status" aria-live="polite">
+            {paymentPortalToast}
+          </div>
+        ) : null}
         <section className="hero-section">
           <div className="hero-media">
             <img alt="Laura y Juan abrazados junto al lago" className="hero-image" src={portadaLauraJuan} />
@@ -3306,8 +3329,9 @@ function App() {
           </div>
           <div className="attendance-payment-action">
             <button
+              aria-disabled={!isPaymentPortalEnabled}
               className="secondary-button attendance-action-payment"
-              disabled={!isPaymentPortalEnabled}
+              onFocus={!isPaymentPortalEnabled ? () => setPaymentPortalToast('Portal de pagos disponible solo después de confirmar tu invitación.') : undefined}
               onClick={openPaymentModal}
               type="button"
             >
@@ -4362,7 +4386,7 @@ function App() {
           <section
             aria-labelledby="payment-modal-title"
             aria-modal="true"
-            className="party-modal"
+            className="party-modal payment-modal"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
           >
@@ -4376,26 +4400,41 @@ function App() {
             </button>
             <p className="eyebrow">Portal de pagos</p>
             <h2 id="payment-modal-title">Información para realizar tu pago</h2>
-            <p className="modal-copy">Hay dos métodos de pago:</p>
-            <p className="modal-copy">
-              1. Por medio de este link:{' '}
-              <a href="https://checkout.wompi.co/method" rel="noreferrer" target="_blank">
-                https://checkout.wompi.co/method
-              </a>
-            </p>
-            <p className="modal-copy">
-              2. Transferencia a BANCOLOMBIA S.A. para la cuenta INVERSIONES MUNDO MUCURA SAS identificado(a) con
-              NIT 901079616 a la cuenta de ahorros número 21889824406
-            </p>
-            <p className="modal-copy">
-              <strong>IMPORTANTE:</strong> No se hará devoluciones en caso de que ya haya hecho algún pago.
-            </p>
-            <p className="modal-copy">
-              Enviar los comprobantes de pago al WA de{' '}
-              <a href="https://wa.me/573197659146" rel="noreferrer" target="_blank">Lau</a>
-              {' '}o{' '}
-              <a href="https://wa.me/573195852884" rel="noreferrer" target="_blank">Juancho</a>.
-            </p>
+            <p className="modal-copy payment-modal-intro">Elige el método de pago que te resulte más cómodo.</p>
+            <div className="payment-methods">
+              <article className="payment-method-card">
+                <span className="meta-label">Método 1</span>
+                <strong>Pago en línea</strong>
+                <p className="payment-method-copy">
+                  Realiza tu pago directamente desde este enlace seguro.
+                </p>
+                <a className="secondary-button payment-method-link" href="https://checkout.wompi.co/method" rel="noreferrer" target="_blank">
+                  Ir a Wompi
+                </a>
+              </article>
+              <article className="payment-method-card">
+                <span className="meta-label">Método 2</span>
+                <strong>Transferencia Bancolombia</strong>
+                <p className="payment-method-copy">
+                  INVERSIONES MUNDO MUCURA SAS
+                  <br />
+                  NIT 901079616
+                  <br />
+                  Cuenta de ahorros 21889824406
+                </p>
+              </article>
+            </div>
+            <div className="payment-notes">
+              <p className="payment-note">
+                <strong>Importante:</strong> No se harán devoluciones en caso de que ya se haya realizado algún pago.
+              </p>
+              <p className="payment-note">
+                Envía los comprobantes de pago al WA de{' '}
+                <a href="https://wa.me/573197659146" rel="noreferrer" target="_blank">Lau</a>
+                {' '}o{' '}
+                <a href="https://wa.me/573195852884" rel="noreferrer" target="_blank">Juancho</a>.
+              </p>
+            </div>
           </section>
         </div>
       ) : null}
