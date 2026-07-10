@@ -952,6 +952,8 @@ function downloadAdminReservationsWorkbook(reservations: AdminReservationRecord[
     'Fecha ingreso',
     'Fecha salida',
     'Numero de asistentes',
+    'Valor por persona para x noches',
+    'Total estimado del grupo',
     'Nombre asistente',
     'ID asistente',
     'Telefono asistente',
@@ -968,6 +970,8 @@ function downloadAdminReservationsWorkbook(reservations: AdminReservationRecord[
       numberOfNights: string | number
       checkInDate: string
       checkOutDate: string
+      pricePerPersonSummary: string
+      totalEstimateSummary: string
       attendees: Array<{
         fullName: string
         identityDocument: string
@@ -1001,6 +1005,14 @@ function downloadAdminReservationsWorkbook(reservations: AdminReservationRecord[
     ].join('||')
 
     const currentGroup = reservationGroups.get(groupKey)
+    const roomOption = lodgingOptions.find((option) => option.label === (reservation.room ?? '').trim()) ?? null
+    const nightCount = isNightCount(reservation.number_of_nights) ? String(reservation.number_of_nights) as NightCount : null
+    const pricePerPerson = getPriceForNightCount(roomOption, nightCount)
+    const attendeeCountForPricing =
+      typeof reservation.group_capacity === 'number' && reservation.group_capacity > 0
+        ? reservation.group_capacity
+        : attendingGuests.length
+    const totalEstimate = pricePerPerson && attendeeCountForPricing > 0 ? pricePerPerson * attendeeCountForPricing : null
     const nextAttendees = attendingGuests.map((attendee) => ({
       fullName: attendee.fullName || attendee.name,
       identityDocument: attendee.identityDocument || '',
@@ -1022,6 +1034,9 @@ function downloadAdminReservationsWorkbook(reservations: AdminReservationRecord[
       numberOfNights: reservation.number_of_nights ?? '',
       checkInDate: formatExportDateValue(reservation.check_in_date),
       checkOutDate: formatExportDateValue(reservation.check_out_date),
+      pricePerPersonSummary:
+        pricePerPerson && nightCount ? `${nightCount} noche(s): ${formatCurrency(pricePerPerson)}` : '',
+      totalEstimateSummary: totalEstimate ? formatCurrency(totalEstimate) : '',
       attendees: nextAttendees,
     })
   })
@@ -1060,6 +1075,8 @@ function downloadAdminReservationsWorkbook(reservations: AdminReservationRecord[
           createMergedSpreadsheetCell(group.checkInDate),
           createMergedSpreadsheetCell(group.checkOutDate),
           createMergedSpreadsheetCell(0),
+          createMergedSpreadsheetCell(group.pricePerPersonSummary),
+          createMergedSpreadsheetCell(group.totalEstimateSummary),
           createMergedSpreadsheetCell(''),
           createMergedSpreadsheetCell(''),
           createMergedSpreadsheetCell(''),
@@ -1082,6 +1099,8 @@ function downloadAdminReservationsWorkbook(reservations: AdminReservationRecord[
             createMergedSpreadsheetCell(group.checkInDate, mergeDown),
             createMergedSpreadsheetCell(group.checkOutDate, mergeDown),
             createMergedSpreadsheetCell(normalizedAttendees.length, mergeDown),
+            createMergedSpreadsheetCell(group.pricePerPersonSummary, mergeDown),
+            createMergedSpreadsheetCell(group.totalEstimateSummary, mergeDown),
             createMergedSpreadsheetCell(attendee.fullName),
             createMergedSpreadsheetCell(attendee.identityDocument),
             createMergedSpreadsheetCell(attendee.phone),
@@ -1090,7 +1109,7 @@ function downloadAdminReservationsWorkbook(reservations: AdminReservationRecord[
             createMergedSpreadsheetCell(attendee.isPrimaryContact ? 'Si' : 'No'),
           ]
         : [
-            createMergedSpreadsheetCell(attendee.fullName, 0, false, 7),
+            createMergedSpreadsheetCell(attendee.fullName, 0, false, 9),
             createMergedSpreadsheetCell(attendee.identityDocument),
             createMergedSpreadsheetCell(attendee.phone),
             createMergedSpreadsheetCell(attendee.email),
