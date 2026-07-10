@@ -48,9 +48,10 @@ for select
 to authenticated
 using (true);
 
+drop index if exists public.wedding_rsvps_invitation_code_key;
+
 create unique index if not exists wedding_rsvps_invitation_code_key
-on public.wedding_rsvps (invitation_code)
-where invitation_code is not null;
+on public.wedding_rsvps (invitation_code);
 
 create or replace function public.upsert_wedding_rsvp(rsvp_payload jsonb)
 returns uuid

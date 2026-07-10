@@ -64,14 +64,14 @@ type InvitationMember = {
   isPrimaryContact: boolean
 }
 
-type NightCount = '1' | '2' | '3'
+type NightCount = '1' | '2' | '3' | '4' | '5' | '6' | '7'
 
 type LodgingOption = {
   id: string
   label: string
   totalRooms: number
   capacity: number
-  pricesByNight: Record<NightCount, number>
+  pricesByNight: Partial<Record<NightCount, number>> & Record<'1', number>
 }
 
 type ExistingGroupOption = {
@@ -613,6 +613,32 @@ const lodgingOptions: LodgingOption[] = [
     pricesByNight: { 1: 956595, 2: 1593190, 3: 2229785 },
   },
 ]
+
+const supportedNightCounts: NightCount[] = ['1', '2', '3', '4', '5', '6', '7']
+
+function isNightCount(value: string | number | null | undefined): value is NightCount {
+  if (value == null) {
+    return false
+  }
+
+  return supportedNightCounts.includes(String(value) as NightCount)
+}
+
+function getPriceForNightCount(option: LodgingOption | null, nightCount: NightCount | null) {
+  if (!option || !nightCount) {
+    return null
+  }
+
+  const configuredPrice = option.pricesByNight[nightCount]
+
+  if (typeof configuredPrice === 'number') {
+    return configuredPrice
+  }
+
+  const baseOneNightPrice = option.pricesByNight['1']
+
+  return typeof baseOneNightPrice === 'number' ? baseOneNightPrice * Number(nightCount) : null
+}
 
 function getInvitationType(invitation: InvitationPreset): InvitationType {
   return invitation.members.length > 1 ? 'family' : 'individual'
@@ -1901,10 +1927,7 @@ function App() {
       ? existingGroups.find((group) => group.id === formData.groupName) ?? null
       : null
   const selectedRoomOption = lodgingOptions.find((option) => option.label === formData.room) ?? null
-  const selectedNightCount =
-    formData.numberOfNights === '1' || formData.numberOfNights === '2' || formData.numberOfNights === '3'
-      ? formData.numberOfNights
-      : null
+  const selectedNightCount = isNightCount(formData.numberOfNights) ? formData.numberOfNights : null
   const currentInvitationCodeForAvailability =
     savedReservationSnapshot?.invitationCode ?? (isKnownInvitation ? activeInvitation.code : null)
   const availableLodgingOptions = lodgingOptions.filter((option) => {
@@ -1917,14 +1940,10 @@ function App() {
     )
     return option.capacity >= requiredLodgingCapacity && (reservedCount < option.totalRooms || option.label === formData.room)
   })
-  const selectedPricePerPerson =
-    selectedRoomOption && selectedNightCount ? selectedRoomOption.pricesByNight[selectedNightCount] : null
+  const selectedPricePerPerson = getPriceForNightCount(selectedRoomOption, selectedNightCount)
   const selectedStayTotal = selectedPricePerPerson ? selectedPricePerPerson * requiredLodgingCapacity : null
   const selectedExistingGroupNightCount =
-    selectedExistingGroup &&
-    (selectedExistingGroup.numberOfNights === 1 ||
-      selectedExistingGroup.numberOfNights === 2 ||
-      selectedExistingGroup.numberOfNights === 3)
+    selectedExistingGroup && isNightCount(selectedExistingGroup.numberOfNights)
       ? String(selectedExistingGroup.numberOfNights) as NightCount
       : null
   const summaryRoomLabel = formData.travelGroupMode === 'join' ? selectedExistingGroup?.room ?? '' : formData.room
@@ -1938,8 +1957,7 @@ function App() {
         : attendingCount > 0
           ? attendingCount
           : null
-  const summaryPricePerPerson =
-    summaryRoomOption && summaryNightCount ? summaryRoomOption.pricesByNight[summaryNightCount] : null
+  const summaryPricePerPerson = getPriceForNightCount(summaryRoomOption, summaryNightCount)
   const summaryStayTotal = summaryPricePerPerson && summaryPeopleCount ? summaryPricePerPerson * summaryPeopleCount : null
   const paymentPlan = summaryStayTotal
     ? [
@@ -3630,7 +3648,10 @@ function App() {
                                 return (
                                   <>
                               <label>
-                                Nombre completo <span className="required-indicator">*</span>
+                                <span className="field-label">
+                                  <span>Nombre completo</span>
+                                  <span className="required-indicator">*</span>
+                                </span>
                                 <input
                                   onChange={(event) => handleMemberFieldChange(member.id, 'fullName', event.target.value)}
                                   required
@@ -3638,7 +3659,10 @@ function App() {
                                 />
                               </label>
                               <label>
-                                ID o Pasaporte {isBabyMember ? '' : <span className="required-indicator">*</span>}
+                                <span className="field-label">
+                                  <span>ID o Pasaporte</span>
+                                  {isBabyMember ? null : <span className="required-indicator">*</span>}
+                                </span>
                                 <input
                                   readOnly={isBabyMember}
                                   onChange={(event) =>
@@ -3649,7 +3673,10 @@ function App() {
                                 />
                               </label>
                               <label>
-                                Teléfono {isBabyMember ? '' : <span className="required-indicator">*</span>}
+                                <span className="field-label">
+                                  <span>Teléfono</span>
+                                  {isBabyMember ? null : <span className="required-indicator">*</span>}
+                                </span>
                                 <input
                                   readOnly={isBabyMember}
                                   onChange={(event) => handleMemberFieldChange(member.id, 'phone', event.target.value)}
@@ -3658,7 +3685,9 @@ function App() {
                                 />
                               </label>
                               <label>
-                                Correo
+                                <span className="field-label">
+                                  <span>Correo</span>
+                                </span>
                                 <input
                                   readOnly={isBabyMember}
                                   onChange={(event) => handleMemberFieldChange(member.id, 'email', event.target.value)}
@@ -3683,7 +3712,10 @@ function App() {
                               </div>
                               {member.hasAllergies ? (
                                 <label className="full-span">
-                                  ¿Cuáles? <span className="required-indicator">*</span>
+                                  <span className="field-label">
+                                    <span>¿Cuáles?</span>
+                                    <span className="required-indicator">*</span>
+                                  </span>
                                   <textarea
                                     onChange={(event) =>
                                       handleMemberFieldChange(member.id, 'allergies', event.target.value)
@@ -3960,9 +3992,11 @@ function App() {
                                   value={formData.numberOfNights}
                                 >
                                   <option value="">Selecciona las noches</option>
-                                  <option value="1">1 noche</option>
-                                  <option value="2">2 noches</option>
-                                  <option value="3">3 noches</option>
+                                  {supportedNightCounts.map((nightCount) => (
+                                    <option key={nightCount} value={nightCount}>
+                                      {nightCount} {nightCount === '1' ? 'noche' : 'noches'}
+                                    </option>
+                                  ))}
                                 </select>
                               </label>
 
@@ -4100,9 +4134,11 @@ function App() {
                           value={formData.numberOfNights}
                         >
                           <option value="">Selecciona las noches</option>
-                          <option value="1">1 noche</option>
-                          <option value="2">2 noches</option>
-                          <option value="3">3 noches</option>
+                          {supportedNightCounts.map((nightCount) => (
+                            <option key={nightCount} value={nightCount}>
+                              {nightCount} {nightCount === '1' ? 'noche' : 'noches'}
+                            </option>
+                          ))}
                         </select>
                       </label>
 
