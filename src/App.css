@@ -1525,6 +1525,54 @@ body::after {
   color: var(--ink-strong);
 }
 
+.party-card-copy {
+  margin: -4px 0 0;
+  color: rgba(45, 79, 88, 0.82);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.party-card--gift-note {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.82), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(255, 231, 195, 0.4), transparent 42%),
+    linear-gradient(180deg, rgba(255, 252, 245, 0.95), rgba(238, 249, 247, 0.9));
+  border-color: rgba(199, 170, 112, 0.28);
+  box-shadow:
+    0 18px 38px rgba(126, 201, 214, 0.12),
+    0 10px 24px rgba(201, 175, 120, 0.08);
+}
+
+.party-card--gift-note::after {
+  width: 54px;
+  height: 54px;
+  top: 12px;
+  right: 12px;
+  border-top-right-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(201, 175, 120, 0.3), transparent 60%);
+}
+
+.party-card--gift-note .meta-label {
+  color: #b38a42;
+  letter-spacing: 0.26em;
+}
+
+.party-card--gift-note strong {
+  position: relative;
+  display: inline-block;
+  padding-right: 28px;
+}
+
+.party-card--gift-note strong::after {
+  content: '♡';
+  position: absolute;
+  top: -2px;
+  right: 0;
+  color: #cf9f68;
+  font-size: 1.15rem;
+}
+
 .contact-card strong {
   font-family: 'Cormorant Garamond', serif;
   font-size: 2rem;
@@ -2746,6 +2794,17 @@ body::after {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.rsvp-form .required-indicator,
+.attendee-details-grid .required-indicator {
+  display: inline;
+  margin-left: 0;
+  color: #d64045 !important;
+  font-weight: 700;
+  line-height: inherit;
+  vertical-align: baseline;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .allergy-toggle-row {

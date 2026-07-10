@@ -219,6 +219,11 @@ type SoundtrackTrack = {
 const weddingDate = new Date('2027-05-27T16:30:00')
 const weddingSoundtrack: SoundtrackTrack[] = [
   {
+    title: 'Si no te tengo',
+    artist: 'Green Valley',
+    src: siNoTeTengoTrack,
+  },
+  {
     title: 'Volví a Nacer',
     artist: 'Carlos Vives',
     src: volviANacerTrack,
@@ -227,11 +232,6 @@ const weddingSoundtrack: SoundtrackTrack[] = [
     title: 'The Vow',
     artist: 'Ed Sheeran',
     src: theVowTrack,
-  },
-  {
-    title: 'Si no te tengo',
-    artist: 'Green Valley',
-    src: siNoTeTengoTrack,
   },
 ]
 
@@ -361,10 +361,10 @@ const initialSongSuggestionFormData: SongSuggestionFormData = {
   songLink: '',
 }
 
-function buildInitialFormData(invitation: InvitationPreset): RsvpFormData {
+function buildInitialFormData(): RsvpFormData {
   return {
     ...initialFormData,
-    fullName: invitation.members[0] ?? '',
+    fullName: '',
   }
 }
 
@@ -661,7 +661,7 @@ function createMembers(invitation: InvitationPreset): InvitationMember[] {
     id: `${invitation.code}-${index}`,
     name: memberName,
     attending: false,
-    fullName: memberName,
+    fullName: '',
     identityDocument: isBabyGuest(invitation.code, memberName) ? BABY_NOT_APPLICABLE_VALUE : '',
     phone: isBabyGuest(invitation.code, memberName) ? BABY_NOT_APPLICABLE_VALUE : '',
     email: isBabyGuest(invitation.code, memberName) ? BABY_NOT_APPLICABLE_VALUE : '',
@@ -1853,7 +1853,7 @@ function App() {
   const [visiblePortraits, setVisiblePortraits] = useState(() => (window.innerWidth <= 900 ? 1 : 3))
   const [activeInvitation] = useState<InvitationPreset>(() => getInvitationFromSearch())
   const [familyMembers, setFamilyMembers] = useState<InvitationMember[]>(() => createMembers(getInvitationFromSearch()))
-  const [formData, setFormData] = useState<RsvpFormData>(() => buildInitialFormData(getInvitationFromSearch()))
+  const [formData, setFormData] = useState<RsvpFormData>(() => buildInitialFormData())
   const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [isEditingReservation, setIsEditingReservation] = useState(false)
@@ -2339,7 +2339,7 @@ function App() {
 
       if (error) {
         setFamilyMembers(createMembers(activeInvitation))
-        setFormData(buildInitialFormData(activeInvitation))
+        setFormData(buildInitialFormData())
         setSavedReservationSnapshot(null)
         setIsEditingReservation(false)
         setHasSavedReservation(false)
@@ -2351,7 +2351,7 @@ function App() {
 
       if (!savedReservation) {
         setFamilyMembers(createMembers(activeInvitation))
-        setFormData(buildInitialFormData(activeInvitation))
+        setFormData(buildInitialFormData())
         setSavedReservationSnapshot(null)
         setIsEditingReservation(false)
         setHasSavedReservation(false)
@@ -2408,8 +2408,8 @@ function App() {
         travelGroupMode: savedReservation.travel_group_mode,
       })
       const nextFormData = {
-        ...buildInitialFormData(activeInvitation),
-        fullName: savedReservation.full_name?.trim() || activeInvitation.members[0] || '',
+        ...buildInitialFormData(),
+        fullName: savedReservation.full_name?.trim() || '',
         identityDocument: savedReservation.identity_document?.trim() || '',
         phone: savedReservation.phone?.trim() || '',
         travelGroupMode: savedReservation.travel_group_mode || 'individual',
@@ -2470,7 +2470,7 @@ function App() {
 
   function openRsvpModal() {
     setFamilyMembers(createMembers(activeInvitation))
-    setFormData(buildInitialFormData(activeInvitation))
+    setFormData(buildInitialFormData())
     setSavedReservationSnapshot(null)
     setIsEditingReservation(false)
     setIsReservationLoading(Boolean(supabase) && isKnownInvitation)
@@ -2510,7 +2510,7 @@ function App() {
 
   function openPaymentModal() {
     if (!isPaymentPortalEnabled) {
-      setPaymentPortalToast('Portal de pagos disponible solo después de confirmar tu invitación.')
+      setPaymentPortalToast('Esta información estará disponible cuando confirmes la asistencia')
       return
     }
 
@@ -3172,7 +3172,7 @@ function App() {
               <div>
                 <span className="meta-label">Lugar</span>
                 <strong>Hotel Isla Múcura</strong>
-                <span className="meta-support-copy">Frente al mar en el jardin del hotel</span>
+                <span className="meta-support-copy">Frente al mar en el jardín del hotel</span>
               </div>
             </div>
           </div>
@@ -3265,7 +3265,7 @@ function App() {
             Hostel Isla Múcura
             <span aria-hidden="true" className="sea-charm sea-charm--star"></span>
           </h2>
-          <p className="venue-subcopy">Frente al mar en el jardin del hotel</p>
+          <p className="venue-subcopy">Frente al mar en el jardín del hotel</p>
           <p className="venue-copy">
             Hemos elegido este rincón del Caribe para celebrar juntos un fin de semana inolvidable.
           </p>
@@ -3340,7 +3340,7 @@ function App() {
             <button
               aria-disabled={!isPaymentPortalEnabled}
               className="secondary-button attendance-action-payment"
-              onFocus={!isPaymentPortalEnabled ? () => setPaymentPortalToast('Portal de pagos disponible solo después de confirmar tu invitación.') : undefined}
+              onFocus={!isPaymentPortalEnabled ? () => setPaymentPortalToast('Esta información estará disponible cuando confirmes la asistencia') : undefined}
               onClick={openPaymentModal}
               type="button"
             >
@@ -3474,6 +3474,11 @@ function App() {
               <button className="secondary-button" onClick={openDressCodeModal} type="button">
                 Ver mas
               </button>
+            </article>
+            <article className="party-card party-card--gift-note">
+              <span className="meta-label">Regalo</span>
+              <strong>Tu presencia es nuestro mejor regalo</strong>
+              <p className="party-card-copy">¡Te esperamos!</p>
             </article>
           </div>
         </section>
@@ -3625,7 +3630,7 @@ function App() {
                                 return (
                                   <>
                               <label>
-                                Nombre completo *
+                                Nombre completo <span className="required-indicator">*</span>
                                 <input
                                   onChange={(event) => handleMemberFieldChange(member.id, 'fullName', event.target.value)}
                                   required
@@ -3633,7 +3638,7 @@ function App() {
                                 />
                               </label>
                               <label>
-                                ID o Pasaporte {isBabyMember ? '' : '*'}
+                                ID o Pasaporte {isBabyMember ? '' : <span className="required-indicator">*</span>}
                                 <input
                                   readOnly={isBabyMember}
                                   onChange={(event) =>
@@ -3644,7 +3649,7 @@ function App() {
                                 />
                               </label>
                               <label>
-                                Teléfono {isBabyMember ? '' : '*'}
+                                Teléfono {isBabyMember ? '' : <span className="required-indicator">*</span>}
                                 <input
                                   readOnly={isBabyMember}
                                   onChange={(event) => handleMemberFieldChange(member.id, 'phone', event.target.value)}
@@ -3678,7 +3683,7 @@ function App() {
                               </div>
                               {member.hasAllergies ? (
                                 <label className="full-span">
-                                  ¿Cuáles? *
+                                  ¿Cuáles? <span className="required-indicator">*</span>
                                   <textarea
                                     onChange={(event) =>
                                       handleMemberFieldChange(member.id, 'allergies', event.target.value)
