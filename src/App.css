@@ -1533,6 +1533,9 @@ body::after {
 }
 
 .party-card--gift-note {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: min(100%, 430px);
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.82), transparent 34%),
     radial-gradient(circle at bottom left, rgba(255, 231, 195, 0.4), transparent 42%),
@@ -3020,6 +3023,12 @@ body::after {
   .party-grid,
   .contact-grid {
     grid-template-columns: 1fr;
+  }
+
+  .party-card--gift-note {
+    grid-column: auto;
+    justify-self: stretch;
+    width: 100%;
   }
 
   .countdown-section {
