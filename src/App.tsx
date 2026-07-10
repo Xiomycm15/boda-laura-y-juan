@@ -369,7 +369,16 @@ function buildInitialFormData(invitation: InvitationPreset): RsvpFormData {
 }
 
 function isAdminRoute() {
-  return window.location.pathname.startsWith('/novios')
+  const searchParams = new URLSearchParams(window.location.search)
+  const panelFlag = searchParams.get('panel')
+  const normalizedPathname = window.location.pathname.replace(/\/+$/, '')
+
+  return (
+    panelFlag === '1' ||
+    panelFlag === 'true' ||
+    normalizedPathname === '/novios' ||
+    normalizedPathname.endsWith('/novios')
+  )
 }
 
 function formatAdminDate(value: string | null) {
