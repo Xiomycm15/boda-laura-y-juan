@@ -1183,7 +1183,10 @@ function downloadCoupleInvitationsWorkbook(reservations: AdminReservationRecord[
   ]
   const invitationRowsXml: string[] = [createSpreadsheetRow(invitationHeader, true)]
   const reservationsByInvitationCode = new Map<string, AdminReservationRecord>()
-  const invitationBaseUrl = `${window.location.origin}/?invite=`
+  const appBasePath = window.location.pathname.includes('/boda-laura-y-juan')
+    ? '/boda-laura-y-juan/'
+    : '/'
+  const invitationBaseUrl = `${window.location.origin}${appBasePath}?invite=`
   let confirmedAttendeesCount = 0
   let declinedAttendeesCount = 0
   let unconfirmedAttendeesCount = 0
