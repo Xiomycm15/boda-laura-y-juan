@@ -46,6 +46,7 @@ type InvitationType = 'individual' | 'family'
 type InvitationPreset = {
   code: string
   slug: string
+  slugAliases?: string[]
   label: string
   members: string[]
   isOptional?: boolean
@@ -292,7 +293,13 @@ const invitationPresets: InvitationPreset[] = [
   { code: 'INV-045', slug: 'juanca-alejandra', label: 'JuanCa & Alejandra', members: ['JuanCa', 'Alejandra'] },
   { code: 'INV-046', slug: 'santi-sofia', label: 'Santi & Sofía', members: ['Santi', 'Sofía'] },
   { code: 'INV-047', slug: 'rafa-alejandra', label: 'Rafa & Alejandra', members: ['Rafa', 'Alejandra'] },
-  { code: 'INV-048', slug: 'juanfe', label: 'JuanFe & Sofía', members: ['JuanFe', 'Sofía'] },
+  {
+    code: 'INV-048',
+    slug: 'juanfe-sofia',
+    slugAliases: ['juanfe'],
+    label: 'JuanFe & Sofía',
+    members: ['JuanFe', 'Sofía'],
+  },
   {
     code: 'INV-049',
     slug: 'manuelish-novio',
@@ -711,7 +718,10 @@ function getInvitationFromSearch(): InvitationPreset {
   }
 
   return (
-    invitationPresets.find((invitation) => invitation.slug === inviteSlug) ?? {
+    invitationPresets.find(
+      (invitation) =>
+        invitation.slug === inviteSlug || invitation.slugAliases?.includes(inviteSlug),
+    ) ?? {
       code: 'INV-DEFAULT',
       slug: 'invitacion-no-encontrada',
       label: 'Invitación no encontrada',
