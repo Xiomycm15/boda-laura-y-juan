@@ -339,6 +339,13 @@ const invitationPresets: InvitationPreset[] = [
     members: ['Brayan', 'Esposa'],
     isOptional: true,
   },
+  {
+    code: 'INV-058',
+    slug: 'mauricio-karen',
+    label: 'Mauricio & Karen',
+    members: ['Mauricio', 'Karen'],
+    isOptional: true,
+  },
 ]
 
 const initialFormData: RsvpFormData = {
