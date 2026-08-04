@@ -1945,6 +1945,7 @@ function App() {
   const [paymentPortalToast, setPaymentPortalToast] = useState('')
 
   const invitationType = getInvitationType(activeInvitation)
+  const rsvpDeadlineLabel = activeInvitation.code === 'INV-058' ? '10 de Septiembre de 2026' : '10 de Agosto de 2026'
   const activeTrack = weddingSoundtrack[activeTrackIndex] ?? null
   const attendingMembers = familyMembers.filter((member) => member.attending)
   const attendingCount = attendingMembers.length
@@ -3619,13 +3620,13 @@ function App() {
                   ? (
                     <>
                       Ya habías confirmado esta invitación. Aquí puedes editar tu información y guardar cambios hasta el{' '}
-                      <strong className="rsvp-deadline-highlight">10 de Agosto</strong>.
+                      <strong className="rsvp-deadline-highlight">{rsvpDeadlineLabel}</strong>.
                     </>
                   )
                   : (
                     <>
                       Completa la información de tu invitación. Si necesitas hacer cambios, podrás editarla aquí mismo hasta el{' '}
-                      <strong className="rsvp-deadline-highlight">10 de Agosto</strong>.
+                      <strong className="rsvp-deadline-highlight">{rsvpDeadlineLabel}</strong>.
                     </>
                   )}
             </p>
@@ -4337,7 +4338,7 @@ function App() {
                     <li>Una vez realizado un abono, el hotel no realiza devoluciones.</li>
                     <li>
                       Tienes tiempo de confirmar o editar tu reserva hasta el{' '}
-                      <span className="lodging-deadline">10 de Agosto de 2026</span>
+                      <span className="lodging-deadline">{rsvpDeadlineLabel}</span>
                     </li>
                     <li>
                       Es importante que llegues a La Bodeguita de Cartagena antes de las 9:00 a. m., ya que el
