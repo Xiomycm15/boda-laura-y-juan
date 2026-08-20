@@ -1952,7 +1952,10 @@ function App() {
   const [paymentPortalToast, setPaymentPortalToast] = useState('')
 
   const invitationType = getInvitationType(activeInvitation)
-  const rsvpDeadlineLabel = activeInvitation.code === 'INV-058' ? '10 de Septiembre de 2026' : '10 de Agosto de 2026'
+  const rsvpDeadlineLabel =
+    activeInvitation.code === 'INV-058' || activeInvitation.code === 'INV-059'
+      ? '10 de Septiembre de 2026'
+      : '10 de Agosto de 2026'
   const activeTrack = weddingSoundtrack[activeTrackIndex] ?? null
   const attendingMembers = familyMembers.filter((member) => member.attending)
   const attendingCount = attendingMembers.length
