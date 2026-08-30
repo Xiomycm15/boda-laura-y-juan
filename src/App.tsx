@@ -271,7 +271,7 @@ const invitationPresets: InvitationPreset[] = [
   { code: 'INV-019', slug: 'rafa', label: 'Rafa', members: ['Rafa'] },
   { code: 'INV-020', slug: 'mafe', label: 'Mafe', members: ['Mafe'] },
   { code: 'INV-022', slug: 'tia-adri-dieguis', label: 'Tía Adri & Dieguis', members: ['Tía Adri', 'Dieguis'] },
-  { code: 'INV-023', slug: 'tia-rosita', label: 'Tía Rosita', members: ['Tía Rosita'] },
+  { code: 'INV-023', slug: 'tia-rosita', label: 'Tía Rosita & Yovan', members: ['Tía Rosita', 'Yovan'] },
   { code: 'INV-024', slug: 'tia-albita', label: 'Tía Albita', members: ['Tía Albita'] },
   { code: 'INV-025', slug: 'tia-arturo-marthica', label: 'Tía Arturo & Marthica', members: ['Tía Arturo', 'Marthica'] },
   { code: 'INV-026', slug: 'tio-guillo-rosalbita', label: 'Tío Guillo & Rosalbita', members: ['Tío Guillo', 'Rosalbita'] },
