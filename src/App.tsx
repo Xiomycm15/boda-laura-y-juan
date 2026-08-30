@@ -50,6 +50,7 @@ type InvitationPreset = {
   label: string
   members: string[]
   isOptional?: boolean
+  rsvpDeadline?: '2026-09-10'
 }
 
 type InvitationMember = {
@@ -307,7 +308,14 @@ const invitationPresets: InvitationPreset[] = [
     members: ['Manuelish', 'Novio'],
     isOptional: true,
   },
-  { code: 'INV-050', slug: 'angelilla', label: 'Angelilla', members: ['Angelilla'], isOptional: true },
+  {
+    code: 'INV-050',
+    slug: 'angelilla',
+    label: 'Angelilla',
+    members: ['Angelilla'],
+    isOptional: true,
+    rsvpDeadline: '2026-09-10',
+  },
   { code: 'INV-051', slug: 'lini', label: 'Lini', members: ['Lini'], isOptional: true },
   {
     code: 'INV-052',
@@ -323,6 +331,7 @@ const invitationPresets: InvitationPreset[] = [
     label: 'Camila & Brayan',
     members: ['Camila', 'Brayan'],
     isOptional: true,
+    rsvpDeadline: '2026-09-10',
   },
   {
     code: 'INV-055',
@@ -345,6 +354,7 @@ const invitationPresets: InvitationPreset[] = [
     label: 'Mauricio & Karen',
     members: ['Mauricio', 'Karen'],
     isOptional: true,
+    rsvpDeadline: '2026-09-10',
   },
   {
     code: 'INV-059',
@@ -352,6 +362,97 @@ const invitationPresets: InvitationPreset[] = [
     label: 'Vivi & Viktor',
     members: ['Vivi', 'Viktor'],
     isOptional: true,
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-060',
+    slug: 'meli-zsaga3',
+    label: 'Meli & Zsaga3',
+    members: ['Meli', 'Zsaga3'],
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-061',
+    slug: 'cami-medina',
+    label: 'Cami Medina',
+    members: ['Cami Medina'],
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-062',
+    slug: 'jhonf-diana',
+    label: 'JhonF & Diana',
+    members: ['JhonF', 'Diana'],
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-063',
+    slug: 'mari',
+    label: 'Mari',
+    members: ['Mari'],
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-064',
+    slug: 'dayis-fernando-dani-sofi',
+    label: 'Dayis, Fernando, Dani & Sofi',
+    members: ['Dayis', 'Fernando', 'Dani', 'Sofi'],
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-065',
+    slug: 'tio-cesar-pilar-maria-paula-maria-camila-felipe',
+    label: 'Tío César, Pilar, María Paula, María Camila & Felipe',
+    members: ['Tío César', 'Pilar', 'María Paula', 'María Camila', 'Felipe'],
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-066',
+    slug: 'carlos-senora',
+    label: 'Carlos & Señora',
+    members: ['Carlos', 'Señora'],
+    isOptional: true,
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-067',
+    slug: 'samu-senora',
+    label: 'Samu & Señora',
+    members: ['Samu', 'Señora'],
+    isOptional: true,
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-068',
+    slug: 'maria-pau-santiago',
+    label: 'María Pau & Santiago',
+    members: ['María Pau', 'Santiago'],
+    isOptional: true,
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-069',
+    slug: 'yeiri-mauricio',
+    label: 'Yeiri & Mauricio',
+    members: ['Yeiri', 'Mauricio'],
+    isOptional: true,
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-070',
+    slug: 'manuelish-levinson',
+    label: 'Manuelish & Levinson',
+    members: ['Manuelish', 'Levinson'],
+    isOptional: true,
+    rsvpDeadline: '2026-09-10',
+  },
+  {
+    code: 'INV-071',
+    slug: 'pauli',
+    label: 'Pauli',
+    members: ['Pauli'],
+    isOptional: true,
+    rsvpDeadline: '2026-09-10',
   },
 ]
 
@@ -1953,9 +2054,7 @@ function App() {
 
   const invitationType = getInvitationType(activeInvitation)
   const rsvpDeadlineLabel =
-    activeInvitation.code === 'INV-058' || activeInvitation.code === 'INV-059'
-      ? '10 de Septiembre de 2026'
-      : '10 de Agosto de 2026'
+    activeInvitation.rsvpDeadline === '2026-09-10' ? '10 de Septiembre de 2026' : '10 de Agosto de 2026'
   const activeTrack = weddingSoundtrack[activeTrackIndex] ?? null
   const attendingMembers = familyMembers.filter((member) => member.attending)
   const attendingCount = attendingMembers.length
