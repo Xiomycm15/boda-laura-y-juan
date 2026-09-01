@@ -378,9 +378,9 @@ const invitationPresets: InvitationPreset[] = [
   },
   {
     code: 'INV-060',
-    slug: 'meli-zsaga3',
-    label: 'Meli & Zsaga3',
-    members: ['Meli', 'Zsaga3'],
+    slug: 'meli-zsaga',
+    label: 'Meli & Zsaga',
+    members: ['Meli', 'Zsaga'],
     rsvpDeadline: '2026-09-10',
   },
   {
